@@ -1,5 +1,6 @@
 import React from 'react';
 import * as RN from 'react-native';
+import { Colors } from '../styles/theme';
 
 interface TextInputFieldProps {
     value: string;
@@ -12,7 +13,7 @@ interface TextInputFieldProps {
     secureTextEntry?: boolean;
 }
 
-const TextInputField: React.FC<TextInputFieldProps> = ({
+const TextInputField: React.FC<TextInputFieldProps & { placeholderTextColor?: string }> = ({
     value,
     onChangeText,
     placeholder = '',
@@ -21,6 +22,7 @@ const TextInputField: React.FC<TextInputFieldProps> = ({
     autoCapitalize = 'sentences',
     keyboardType = 'default',
     secureTextEntry = false,
+    placeholderTextColor,
 }) => {
     return (
         <RN.View style={[styles.container, style]}>
@@ -29,7 +31,7 @@ const TextInputField: React.FC<TextInputFieldProps> = ({
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={placeholderTextColor || Colors.textSecondary}
                 autoCapitalize={autoCapitalize}
                 keyboardType={keyboardType}
                 secureTextEntry={secureTextEntry}
@@ -38,11 +40,12 @@ const TextInputField: React.FC<TextInputFieldProps> = ({
     );
 };
 
+
 const styles = RN.StyleSheet.create({
     container: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: Colors.white,
         borderRadius: 14,
-        shadowColor: '#000',
+        shadowColor: Colors.primary,
         shadowOffset: {
             width: 0,
             height: 2,
@@ -50,14 +53,17 @@ const styles = RN.StyleSheet.create({
         shadowOpacity: 0.08,
         shadowRadius: 8,
         elevation: 3,
+        borderWidth: 1,
+        borderColor: Colors.border,
     },
     input: {
         paddingHorizontal: 20,
         paddingVertical: 16,
         fontSize: 16,
-        color: '#1F2937',
+        color: Colors.textPrimary,
         borderRadius: 14,
     },
 });
 
 export default TextInputField;
+

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import * as RN from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '../styles/theme';
 
 const SettingsScreen: React.FC = () => {
     const [iftarNotification, setIftarNotification] = useState(true);
@@ -63,7 +64,7 @@ const SettingsScreen: React.FC = () => {
                         <RN.Switch
                             value={iftarNotification}
                             onValueChange={setIftarNotification}
-                            trackColor={{ false: '#CBD5E1', true: '#3B82F6' }}
+                            trackColor={{ false: Colors.border, true: Colors.accent }}
                             thumbColor="#FFFFFF"
                         />
                     </RN.View>
@@ -75,7 +76,7 @@ const SettingsScreen: React.FC = () => {
                         <RN.Switch
                             value={sahurNotification}
                             onValueChange={setSahurNotification}
-                            trackColor={{ false: '#CBD5E1', true: '#3B82F6' }}
+                            trackColor={{ false: Colors.border, true: Colors.accent }}
                             thumbColor="#FFFFFF"
                         />
                     </RN.View>
@@ -115,7 +116,7 @@ const styles = RN.StyleSheet.create({
     title: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: Colors.primary,
     },
     scrollContent: {
         padding: 16,
@@ -156,7 +157,7 @@ const styles = RN.StyleSheet.create({
     itemTitle: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#1E3A5F',
+        color: Colors.primary,
     },
     itemSubtitle: {
         fontSize: 13,
@@ -186,7 +187,7 @@ const styles = RN.StyleSheet.create({
     sectionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: Colors.primary,
         marginLeft: 12,
     },
     switchRow: {

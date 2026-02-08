@@ -3,6 +3,7 @@ import * as RN from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
 import { MainTabParamList } from '../navigation/MainTabNavigator';
+import { Colors } from '../styles/theme';
 
 type HomeScreenRouteProp = RouteProp<MainTabParamList, 'Home'>;
 
@@ -181,7 +182,7 @@ const styles = RN.StyleSheet.create({
     locationTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: Colors.primary,
         letterSpacing: 0.5,
     },
     actionRow: {
@@ -220,11 +221,11 @@ const styles = RN.StyleSheet.create({
     centerLogoContainer: {
         width: 70,
         height: 70,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: Colors.white,
         borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#1E3A5F',
+        shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
@@ -235,11 +236,11 @@ const styles = RN.StyleSheet.create({
         height: 44,
     },
     countdownCard: {
-        backgroundColor: '#1E3A5F',
+        backgroundColor: Colors.primary,
         borderRadius: 24,
         padding: 24,
         alignItems: 'center',
-        shadowColor: '#1E3A5F',
+        shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.2,
         shadowRadius: 16,
@@ -278,7 +279,7 @@ const styles = RN.StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: Colors.primary,
     },
     dateText: {
         fontSize: 13,
@@ -310,7 +311,7 @@ const styles = RN.StyleSheet.create({
     prayerTimeText: {
         fontSize: 17,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: Colors.primary,
     },
     activeText: {
         color: '#FFFFFF',
@@ -337,7 +338,7 @@ const styles = RN.StyleSheet.create({
     modalTitle: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: Colors.primary,
         marginBottom: 16,
     },
     modalBody: {
@@ -348,7 +349,7 @@ const styles = RN.StyleSheet.create({
         marginBottom: 24,
     },
     closeButton: {
-        backgroundColor: '#1E3A5F',
+        backgroundColor: Colors.primary,
         paddingVertical: 12,
         paddingHorizontal: 32,
         borderRadius: 12,

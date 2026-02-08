@@ -4,6 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import PrayerTimesScreen from '../screens/PrayerTimesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import { Colors } from '../styles/theme';
 
 export type MainTabParamList = {
     Home: { city: string; district: string };
@@ -29,8 +30,8 @@ const MainTabNavigator: React.FC<any> = ({ route }) => {
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: styles.tabBar,
-                tabBarActiveTintColor: '#1E3A5F',
-                tabBarInactiveTintColor: '#94A3B8',
+                tabBarActiveTintColor: Colors.primary,
+                tabBarInactiveTintColor: Colors.textSecondary,
                 tabBarLabelStyle: styles.tabBarLabel,
             }}
         >

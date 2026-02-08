@@ -1,6 +1,7 @@
 import React from 'react';
 import * as RN from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '../styles/theme';
 
 const PrayerTimesScreen: React.FC = () => {
     // Örnek veri oluşturma (3 gün öncesinden 30 gün sonrasına)
@@ -93,11 +94,11 @@ const styles = RN.StyleSheet.create({
     title: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: Colors.primary,
     },
     tableHeader: {
         flexDirection: 'row',
-        backgroundColor: '#1E3A5F',
+        backgroundColor: Colors.primary,
         paddingVertical: 12,
         paddingHorizontal: 10,
     },
@@ -128,7 +129,7 @@ const styles = RN.StyleSheet.create({
     dateText: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: Colors.primary,
     },
     dayText: {
         fontSize: 10,

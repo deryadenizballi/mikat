@@ -8,7 +8,9 @@ import {
     Platform,
     TouchableWithoutFeedback as RNTouchableWithoutFeedback,
     Keyboard,
+    Dimensions,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -20,6 +22,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { OnboardingStackParamList } from '../navigation/OnboardingNavigator';
 import PrimaryButton from '../components/PrimaryButton';
 import TextInputField from '../components/TextInputField';
+import { Colors } from '../styles/theme';
+
+const { width, height } = Dimensions.get('window');
 
 type OnboardingScreenNavigationProp = NativeStackNavigationProp<
     OnboardingStackParamList,
@@ -34,7 +39,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     const [name, setName] = useState<string>('');
 
     const handleNext = () => {
-        // Store name in local state (will be passed to next screen or context later)
         console.log('User name:', name);
         navigation.navigate('CitySelection', { userName: name });
     };
@@ -42,59 +46,88 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     const isButtonDisabled = name.trim().length === 0;
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={styles.keyboardView}
-            >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <View style={styles.container}>
-                        {/* Logo Section */}
-                        <View style={styles.logoSection}>
-                            <View style={styles.logoContainer}>
-                                <Image
-                                    source={require('../../assets/logo-placeholder.png')}
-                                    style={styles.logo}
-                                    resizeMode="contain"
+        <View style={styles.flex1}>
+            {/* Background Image */}
+            <Image
+                source={require('../../assets/onboard-bg.jpg')}
+                style={styles.absoluteBackground}
+                resizeMode="cover"
+            />
+
+
+            <SafeAreaView style={styles.safeArea}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={styles.keyboardView}
+                >
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={styles.container}>
+                            {/* Logo Section */}
+                            <View style={styles.logoSection}>
+                                <View style={styles.logoContainer}>
+                                    <Image
+                                        source={require('../../assets/logo-placeholder.png')}
+                                        style={styles.logo}
+                                        resizeMode="contain"
+                                    />
+                                </View>
+                                <Text style={styles.appName}>Mikat</Text>
+                                <Text style={styles.subtitle}>
+                                    "Her vakit bir hatırlayış, her an bir huzur"
+                                </Text>
+                            </View>
+
+
+                            {/* Input Section */}
+                            <View style={styles.inputSection}>
+                                <Text style={styles.inputLabel}>Size nasıl hitap edelim?</Text>
+                                <View style={styles.glassWrapper}>
+                                    <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+                                    <TextInputField
+                                        value={name}
+                                        onChangeText={setName}
+                                        placeholder="Adınızı girin"
+                                        placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                                        autoCapitalize="words"
+                                        style={styles.input}
+                                        inputStyle={styles.inputText}
+                                    />
+                                </View>
+                            </View>
+
+
+                            {/* Button Section */}
+                            <View style={styles.buttonSection}>
+                                <PrimaryButton
+                                    title="Başla"
+                                    onPress={handleNext}
+                                    disabled={isButtonDisabled}
+                                    style={styles.button}
+                                    textStyle={styles.buttonTitle}
                                 />
                             </View>
-                            <Text style={styles.appName}>Mikat</Text>
-                            <Text style={styles.subtitle}>
-                                Günlük namaz ve oruç vakitleri kolayca
-                            </Text>
                         </View>
-
-                        {/* Input Section */}
-                        <View style={styles.inputSection}>
-                            <TextInputField
-                                value={name}
-                                onChangeText={setName}
-                                placeholder="Adınızı girin"
-                                autoCapitalize="words"
-                                style={styles.input}
-                            />
-                        </View>
-
-                        {/* Button Section */}
-                        <View style={styles.buttonSection}>
-                            <PrimaryButton
-                                title="Devam"
-                                onPress={handleNext}
-                                disabled={isButtonDisabled}
-                                style={styles.button}
-                            />
-                        </View>
-                    </View>
-                </TouchableWithoutFeedback>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    flex1: {
+        flex: 1,
+    },
+    absoluteBackground: {
+        position: 'absolute',
+        width: width,
+        height: height,
+        top: 0,
+        left: 0,
+    },
+
     safeArea: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
     },
     keyboardView: {
         flex: 1,
@@ -103,62 +136,112 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 24,
         justifyContent: 'space-between',
-        paddingBottom: 32,
+        paddingBottom: 40,
+        zIndex: 10,
     },
     logoSection: {
-        flex: 1,
+        flex: 1.5,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 40,
+        paddingTop: 20,
     },
     logoContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 30,
-        backgroundColor: '#FFFFFF',
+        width: 100,
+        height: 100,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#1E3A5F',
-        shadowOffset: {
-            width: 0,
-            height: 8,
-        },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 8,
-        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        marginBottom: 20,
     },
     logo: {
-        width: 80,
-        height: 80,
+        width: 60,
+        height: 60,
+        tintColor: '#FFFFFF',
     },
     appName: {
-        fontSize: 36,
+        fontSize: 42,
         fontWeight: 'bold',
-        color: '#1E3A5F',
-        letterSpacing: 1,
-        marginBottom: 12,
+        color: '#FFFFFF',
+        letterSpacing: 2,
+        marginBottom: 10,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     subtitle: {
-        fontSize: 16,
-        color: '#64748B',
+        fontSize: 18,
+        color: '#FFFFFF',
         textAlign: 'center',
-        lineHeight: 24,
-        paddingHorizontal: 20,
+        lineHeight: 26,
+        paddingHorizontal: 30,
+        fontWeight: '500',
+        textShadowColor: 'rgba(0, 0, 0, 0.36)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
     },
+
     inputSection: {
-        paddingVertical: 32,
+        marginBottom: 30,
+    },
+    inputLabel: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        marginBottom: 12,
+        fontWeight: '600',
+        marginLeft: 4,
+        opacity: 0.9,
     },
     input: {
         alignSelf: 'stretch',
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    inputText: {
+        color: '#FFFFFF',
+    },
+    glassWrapper: {
+        borderRadius: 14,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     buttonSection: {
-        paddingTop: 16,
+        paddingTop: 10,
     },
     button: {
         alignSelf: 'stretch',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 30,
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
     },
+    buttonTitle: {
+        color: '#111',
+    },
+
+
+    silhouetteContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: height * 0.35,
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        opacity: 0.6,
+    },
+    silhouette: {
+        width: width,
+        height: '100%',
+    },
+
 });
 
 export default OnboardingScreen;
+
 

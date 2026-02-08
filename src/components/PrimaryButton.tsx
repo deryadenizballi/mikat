@@ -1,5 +1,6 @@
 import React from 'react';
 import * as RN from 'react-native';
+import { Colors } from '../styles/theme';
 
 interface PrimaryButtonProps {
     title: string;
@@ -36,35 +37,36 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
 
 const styles = RN.StyleSheet.create({
     button: {
-        backgroundColor: '#1E3A5F',
-        paddingVertical: 16,
+        backgroundColor: Colors.primary,
+        paddingVertical: 20,
         paddingHorizontal: 32,
-        borderRadius: 14,
+        borderRadius: 30,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#1E3A5F',
+        shadowColor: Colors.primary,
         shadowOffset: {
             width: 0,
-            height: 4,
+            height: 6,
         },
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 6,
     },
     buttonDisabled: {
-        backgroundColor: '#B8C5D4',
+        backgroundColor: Colors.disabled,
         shadowOpacity: 0,
         elevation: 0,
     },
     buttonText: {
-        color: '#FFFFFF',
-        fontSize: 17,
+        color: Colors.white,
+        fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 0.3,
     },
     buttonTextDisabled: {
-        color: '#8A9AAD',
+        color: Colors.disabledText,
     },
 });
 
 export default PrimaryButton;
+

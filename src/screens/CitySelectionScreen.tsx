@@ -6,6 +6,7 @@ import {
     Image as RNImage,
     TouchableOpacity as RNTouchableOpacity,
     ScrollView as RNScrollView,
+    Dimensions,
 } from 'react-native';
 
 const View = RNView as any;
@@ -19,16 +20,17 @@ import { RouteProp } from '@react-navigation/native';
 import { OnboardingStackParamList } from '../navigation/OnboardingNavigator';
 import PrimaryButton from '../components/PrimaryButton';
 import TextInputField from '../components/TextInputField';
+import { Colors } from '../styles/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
 
 type CitySelectionScreenNavigationProp = NativeStackNavigationProp<
     OnboardingStackParamList,
     'CitySelection'
 >;
 
-type CitySelectionScreenRouteProp = RouteProp<
-    OnboardingStackParamList,
-    'CitySelection'
->;
+type CitySelectionScreenRouteProp = RouteProp<OnboardingStackParamList, 'CitySelection'>;
 
 interface CitySelectionScreenProps {
     navigation: CitySelectionScreenNavigationProp;
@@ -85,29 +87,18 @@ const popularCities: City[] = [
             { id: '3-6', name: 'Çiğli' },
         ],
     },
-    {
-        id: '4',
-        name: 'Londra',
-        districts: [
-            { id: '4-1', name: 'Westminster' },
-            { id: '4-2', name: 'Camden' },
-            { id: '4-3', name: 'Greenwich' },
-            { id: '4-4', name: 'Hackney' },
-            { id: '4-5', name: 'Tower Hamlets' },
-        ],
-    },
 ];
 
 const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, route }) => {
+    const { userName } = route.params;
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [selectedCity, setSelectedCity] = useState<City | null>(null);
     const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
-    const { userName } = route.params;
 
     const handleCitySelect = (city: City) => {
         if (selectedCity?.id !== city.id) {
             setSelectedCity(city);
-            setSelectedDistrict(null); // İlçe seçimini sıfırla
+            setSelectedDistrict(null);
         }
     };
 
@@ -116,13 +107,11 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
     };
 
     const handleLocateMe = () => {
-        // Placeholder for location functionality
         console.log('Locate Me button pressed');
     };
 
     const handleSaveCity = () => {
         if (selectedCity && selectedDistrict) {
-            console.log('Onboarding complete!');
             navigation.navigate('MainApp', {
                 city: selectedCity.name,
                 district: selectedDistrict.name
@@ -130,143 +119,180 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
         }
     };
 
-    // Hem şehir hem ilçe seçilmeli
     const isButtonDisabled = selectedCity === null || selectedDistrict === null;
 
-    // Filter cities based on search query
     const filteredCities = popularCities.filter((city) =>
         city.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-            >
-                {/* Header Section */}
-                <View style={styles.header}>
-                    <View style={styles.logoContainer}>
-                        <Image
-                            source={require('../../assets/logo-placeholder.png')}
-                            style={styles.logo}
-                            resizeMode="contain"
-                        />
-                    </View>
-                    <Text style={styles.headerTitle}>Şehir Seçimi</Text>
-                    <Text style={styles.headerSubtitle}>
-                        Doğru namaz vakitleri için şehir ve ilçenizi seçin
-                    </Text>
-                </View>
+        <View style={styles.flex1}>
+            {/* Background Image (Mosque) */}
+            <Image
+                source={require('../../assets/city-bg.jpg')}
+                style={styles.absoluteBackground}
+                resizeMode="cover"
+            />
 
-                {/* Search Section */}
-                <View style={styles.searchSection}>
-                    <TextInputField
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholder="Şehrinizi arayın..."
-                        style={styles.searchInput}
-                    />
+            {/* Gradient Overlay (Dark Greenish/Black) */}
+            <LinearGradient
+                colors={['transparent', 'rgba(11, 28, 45, 0.8)', 'rgba(11, 28, 45, 1)']}
+                locations={[0, 0.2, 0.5]}
+                style={StyleSheet.absoluteFill}
+            />
 
-                    <TouchableOpacity
-                        style={styles.locateButton}
-                        onPress={handleLocateMe}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.locateButtonIcon}>📍</Text>
-                        <Text style={styles.locateButtonText}>Konumumu Otomatik Bul</Text>
-                    </TouchableOpacity>
-                </View>
+            <SafeAreaView style={styles.safeArea}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.goBack()}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.backButtonIcon}>←</Text>
+                </TouchableOpacity>
 
-                {/* Popular Cities Section */}
-                <View style={styles.citiesSection}>
-                    <Text style={styles.sectionTitle}>Popüler Şehirler</Text>
-                    <View style={styles.citiesGrid}>
-                        {filteredCities.map((city) => (
-                            <TouchableOpacity
-                                key={city.id}
-                                style={[
-                                    styles.cityButton,
-                                    selectedCity?.id === city.id && styles.cityButtonSelected,
-                                ]}
-                                onPress={() => handleCitySelect(city)}
-                                activeOpacity={0.7}
-                            >
-                                <Text
-                                    style={[
-                                        styles.cityButtonText,
-                                        selectedCity?.id === city.id && styles.cityButtonTextSelected,
-                                    ]}
-                                >
-                                    {city.name}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Districts Section - Şehir seçildiğinde göster */}
-                {selectedCity && (
-                    <View style={styles.districtsSection}>
-                        <Text style={styles.sectionTitle}>
-                            {selectedCity.name} İlçeleri
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.header}>
+                        <Text style={styles.headerTitle}>Şehir Seçimi</Text>
+                        <Text style={styles.headerSubtitle}>
+                            Selam {userName}, vaktini hesaplamak için şehri ve ilçeni seçmelisin.
                         </Text>
+                    </View>
+
+                    <View style={styles.searchSection}>
+                        <TextInputField
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            placeholder="Şehrinizi arayın..."
+                            style={styles.glassInput}
+                            placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                            inputStyle={{ color: '#FFFFFF' }}
+                        />
+
+                        <TouchableOpacity
+                            style={styles.locateButton}
+                            onPress={handleLocateMe}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.locateButtonIcon}>📍</Text>
+                            <Text style={styles.locateButtonText}>Konumumu Otomatik Bul</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.citiesSection}>
+                        <Text style={styles.sectionTitle}>Popüler Şehirler</Text>
                         <View style={styles.citiesGrid}>
-                            {selectedCity.districts.map((district) => (
+                            {filteredCities.map((city) => (
                                 <TouchableOpacity
-                                    key={district.id}
+                                    key={city.id}
                                     style={[
-                                        styles.districtButton,
-                                        selectedDistrict?.id === district.id && styles.districtButtonSelected,
+                                        styles.cityButton,
+                                        selectedCity?.id === city.id && styles.cityButtonSelected,
                                     ]}
-                                    onPress={() => handleDistrictSelect(district)}
+                                    onPress={() => handleCitySelect(city)}
                                     activeOpacity={0.7}
                                 >
                                     <Text
                                         style={[
-                                            styles.districtButtonText,
-                                            selectedDistrict?.id === district.id && styles.districtButtonTextSelected,
+                                            styles.cityButtonText,
+                                            selectedCity?.id === city.id && styles.cityButtonTextSelected,
                                         ]}
                                     >
-                                        {district.name}
+                                        {city.name}
                                     </Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
                     </View>
-                )}
 
-                {/* Selected Info */}
-                {selectedCity && selectedDistrict && (
-                    <View style={styles.selectedInfo}>
-                        <Text style={styles.selectedInfoText}>
-                            📍 {selectedCity.name}, {selectedDistrict.name}
-                        </Text>
-                    </View>
-                )}
+                    {selectedCity && (
+                        <View style={styles.districtsSection}>
+                            <Text style={styles.sectionTitle}>
+                                {selectedCity.name} İlçeleri
+                            </Text>
+                            <View style={styles.citiesGrid}>
+                                {selectedCity.districts.map((district) => (
+                                    <TouchableOpacity
+                                        key={district.id}
+                                        style={[
+                                            styles.districtButton,
+                                            selectedDistrict?.id === district.id && styles.districtButtonSelected,
+                                        ]}
+                                        onPress={() => handleDistrictSelect(district)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.districtButtonText,
+                                                selectedDistrict?.id === district.id && styles.districtButtonTextSelected,
+                                            ]}
+                                        >
+                                            {district.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    )}
 
-                {/* Spacer to push button to bottom */}
-                <View style={styles.spacer} />
-            </ScrollView>
+                    <View style={styles.spacer} />
+                </ScrollView>
 
-            {/* Save Button - Fixed at bottom */}
-            <View style={styles.buttonContainer}>
-                <PrimaryButton
-                    title="Kaydet"
-                    onPress={handleSaveCity}
-                    disabled={isButtonDisabled}
-                    style={styles.saveButton}
-                />
-            </View>
-        </SafeAreaView>
+                <View style={styles.buttonContainer}>
+                    <PrimaryButton
+                        title="Kaydet ve Devam Et"
+                        onPress={handleSaveCity}
+                        disabled={isButtonDisabled}
+                        style={styles.saveButton}
+                        textStyle={{ color: '#111' }}
+                    />
+                </View>
+            </SafeAreaView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    flex1: {
+        flex: 1,
+    },
+    backButton: {
+        position: 'absolute',
+        top: 65,
+        left: 24,
+        zIndex: 100,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    backButtonIcon: {
+        color: '#FFFFFF',
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginTop: -2, // Görsel hizalama için
+    },
+    absoluteBackground: {
+        position: 'absolute',
+        width: width,
+        height: height * 0.6, // Only top part shows clearly
+        top: 0,
+        left: 0,
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(11, 28, 45, 0.6)',
+    },
     safeArea: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
     },
     scrollView: {
         flex: 1,
@@ -277,57 +303,38 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        paddingTop: 24,
+        paddingTop: 80,
         paddingBottom: 24,
     },
-    logoContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 20,
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#1E3A5F',
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 6,
-        marginBottom: 16,
-    },
-    logo: {
-        width: 50,
-        height: 50,
-    },
     headerTitle: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: 'bold',
-        color: '#1E3A5F',
+        color: '#FFFFFF',
         marginBottom: 8,
     },
     headerSubtitle: {
-        fontSize: 15,
-        color: '#64748B',
+        fontSize: 16,
+        color: 'rgba(255, 255, 255, 0.8)',
         textAlign: 'center',
+        lineHeight: 22,
     },
     searchSection: {
-        marginBottom: 24,
+        marginBottom: 32,
     },
-    searchInput: {
-        marginBottom: 12,
+    glassInput: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        marginBottom: 16,
     },
     locateButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: '#CBD5E1',
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     locateButtonIcon: {
         fontSize: 18,
@@ -335,119 +342,86 @@ const styles = StyleSheet.create({
     },
     locateButtonText: {
         fontSize: 15,
-        color: '#1E3A5F',
-        fontWeight: 'normal',
+        color: '#FFFFFF',
+        fontWeight: '500',
     },
     citiesSection: {
-        marginBottom: 24,
+        marginBottom: 32,
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
-        color: '#1E3A5F',
-        marginBottom: 12,
+        color: '#FFFFFF',
+        marginBottom: 16,
     },
     citiesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginHorizontal: -4,
+        marginHorizontal: -6,
     },
     cityButton: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         paddingVertical: 12,
-        paddingHorizontal: 20,
+        paddingHorizontal: 22,
         borderRadius: 25,
-        margin: 4,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-        elevation: 2,
-        borderWidth: 2,
-        borderColor: 'transparent',
+        margin: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     cityButtonSelected: {
-        backgroundColor: '#1E3A5F',
-        borderColor: '#1E3A5F',
-        shadowColor: '#1E3A5F',
-        shadowOpacity: 0.25,
-        elevation: 4,
+        backgroundColor: '#FFFFFF',
+        borderColor: '#FFFFFF',
     },
     cityButtonText: {
         fontSize: 15,
-        color: '#374151',
-        fontWeight: 'normal',
+        color: '#FFFFFF',
     },
     cityButtonTextSelected: {
-        color: '#FFFFFF',
+        color: '#111',
         fontWeight: 'bold',
     },
     districtsSection: {
-        marginBottom: 24,
+        marginBottom: 32,
     },
     districtButton: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         paddingVertical: 10,
-        paddingHorizontal: 16,
+        paddingHorizontal: 18,
         borderRadius: 20,
-        margin: 4,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        elevation: 1,
-        borderWidth: 1.5,
-        borderColor: '#E2E8F0',
+        margin: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     districtButtonSelected: {
-        backgroundColor: '#3B82F6',
-        borderColor: '#3B82F6',
-        shadowColor: '#3B82F6',
-        shadowOpacity: 0.2,
-        elevation: 3,
+        backgroundColor: '#FFFFFF',
+        borderColor: '#FFFFFF',
     },
     districtButtonText: {
         fontSize: 14,
-        color: '#475569',
-        fontWeight: 'normal',
+        color: '#FFFFFF',
     },
     districtButtonTextSelected: {
-        color: '#FFFFFF',
+        color: '#111',
         fontWeight: 'bold',
-    },
-    selectedInfo: {
-        backgroundColor: '#EFF6FF',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#BFDBFE',
-    },
-    selectedInfoText: {
-        fontSize: 15,
-        color: '#1E40AF',
-        fontWeight: 'bold',
-        textAlign: 'center',
     },
     spacer: {
-        flex: 1,
-        minHeight: 16,
+        height: 100,
     },
     buttonContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
         paddingHorizontal: 24,
-        paddingVertical: 16,
-        paddingBottom: 24,
-        backgroundColor: '#F8FAFC',
+        paddingBottom: 40,
+        paddingTop: 20,
     },
     saveButton: {
-        alignSelf: 'stretch',
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 5,
     },
 });
 
