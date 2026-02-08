@@ -66,7 +66,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                             <View style={styles.logoSection}>
                                 <View style={styles.logoContainer}>
                                     <Image
-                                        source={require('../../assets/logo-placeholder.png')}
+                                        source={require('../../assets/logo.png')}
                                         style={styles.logo}
                                         resizeMode="contain"
                                     />
@@ -148,18 +148,13 @@ const styles = StyleSheet.create({
     logoContainer: {
         width: 100,
         height: 100,
-        borderRadius: 25,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
         marginBottom: 20,
     },
     logo: {
         width: 60,
         height: 60,
-        tintColor: '#FFFFFF',
     },
     appName: {
         fontSize: 42,
