@@ -1,39 +1,79 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import * as RN from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../styles/theme';
 
+// Firebase Services
+import { getMonthlyPrayerTimes } from '../services/prayerTimesService';
+import { getSelectedLocation } from '../services/storageService';
+import { DayData, SelectedLocation } from '../types';
+
 const PrayerTimesScreen: React.FC = () => {
-    // Örnek veri oluşturma (3 gün öncesinden 30 gün sonrasına)
-    const generateMockData = () => {
-        const data = [];
-        const today = new Date();
-        const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-        const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const [prayerData, setPrayerData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [location, setLocation] = useState<SelectedLocation | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-        for (let i = -3; i <= 30; i++) {
-            const date = new Date();
-            date.setDate(today.getDate() + i);
+    const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+    const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
-            data.push({
-                id: i.toString(),
-                dateText: `${date.getDate()} ${months[date.getMonth()]}`,
-                dayName: days[date.getDay()],
-                isToday: i === 0,
-                times: {
-                    imsak: '06:06',
-                    gunes: '07:27',
-                    ogle: '12:56',
-                    ikindi: '15:49',
-                    aksam: '18:14',
-                    yatsi: '19:31',
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                setLoading(true);
+                setError(null);
+
+                // Mevcut konumu al
+                const savedLocation = await getSelectedLocation();
+                setLocation(savedLocation);
+
+                if (!savedLocation?.cityPlateCode || !savedLocation?.districtKey) {
+                    setError('Lütfen önce şehir ve ilçe seçin.');
+                    setLoading(false);
+                    return;
                 }
-            });
-        }
-        return data;
-    };
 
-    const prayerData = generateMockData();
+                // Bu ayın vakitlerini çek
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1; // 1-indexed
+
+                const monthlyData = await getMonthlyPrayerTimes(
+                    savedLocation.cityPlateCode,
+                    savedLocation.districtKey,
+                    year,
+                    month
+                );
+
+                // Veriyi UI formatına dönüştür
+                const formattedData = monthlyData.map((day: DayData, index: number) => {
+                    const date = new Date(day.date);
+                    const isToday = day.date === now.toISOString().split('T')[0];
+
+                    return {
+                        id: index.toString(),
+                        dateText: `${date.getDate()} ${months[date.getMonth()]}`,
+                        dayName: days[date.getDay()],
+                        isToday,
+                        date: day.date,
+                        times: day.prayerTimes,
+                    };
+                });
+
+                // Tarihe göre sırala
+                formattedData.sort((a: any, b: any) => a.date.localeCompare(b.date));
+
+                setPrayerData(formattedData);
+            } catch (err) {
+                console.error('Prayer times fetch error:', err);
+                setError('Vakitler yüklenirken bir hata oluştu.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchData();
+    }, []);
 
     const renderHeader = () => (
         <RN.View style={styles.tableHeader}>
@@ -53,28 +93,79 @@ const PrayerTimesScreen: React.FC = () => {
                 <RN.Text style={[styles.dateText, item.isToday && styles.todayText]}>{item.dateText}</RN.Text>
                 <RN.Text style={[styles.dayText, item.isToday && styles.todayText]}>{item.dayName}</RN.Text>
             </RN.View>
-            <RN.Text style={[styles.timeText, styles.highlightedTimeText, item.isToday && styles.todayText]}>{item.times.imsak}</RN.Text>
-            <RN.Text style={[styles.timeText, item.isToday && styles.todayText]}>{item.times.gunes}</RN.Text>
-            <RN.Text style={[styles.timeText, item.isToday && styles.todayText]}>{item.times.ogle}</RN.Text>
-            <RN.Text style={[styles.timeText, item.isToday && styles.todayText]}>{item.times.ikindi}</RN.Text>
-            <RN.Text style={[styles.timeText, styles.highlightedTimeText, item.isToday && styles.todayText]}>{item.times.aksam}</RN.Text>
-            <RN.Text style={[styles.timeText, item.isToday && styles.todayText]}>{item.times.yatsi}</RN.Text>
+            <RN.Text style={[styles.timeText, styles.highlightedTimeText, item.isToday && styles.todayText]}>
+                {item.times?.imsak || '-'}
+            </RN.Text>
+            <RN.Text style={[styles.timeText, item.isToday && styles.todayText]}>
+                {item.times?.gunes || '-'}
+            </RN.Text>
+            <RN.Text style={[styles.timeText, item.isToday && styles.todayText]}>
+                {item.times?.ogle || '-'}
+            </RN.Text>
+            <RN.Text style={[styles.timeText, item.isToday && styles.todayText]}>
+                {item.times?.ikindi || '-'}
+            </RN.Text>
+            <RN.Text style={[styles.timeText, styles.highlightedTimeText, item.isToday && styles.todayText]}>
+                {item.times?.aksam || '-'}
+            </RN.Text>
+            <RN.Text style={[styles.timeText, item.isToday && styles.todayText]}>
+                {item.times?.yatsi || '-'}
+            </RN.Text>
         </RN.View>
     );
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top']}>
+                <RN.View style={styles.header}>
+                    <RN.Text style={styles.title}>Aylık Vakitler</RN.Text>
+                </RN.View>
+                <RN.View style={styles.loadingContainer}>
+                    <RN.ActivityIndicator size="large" color={Colors.primary} />
+                    <RN.Text style={styles.loadingText}>Vakitler yükleniyor...</RN.Text>
+                </RN.View>
+            </SafeAreaView>
+        );
+    }
+
+    if (error) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top']}>
+                <RN.View style={styles.header}>
+                    <RN.Text style={styles.title}>Aylık Vakitler</RN.Text>
+                </RN.View>
+                <RN.View style={styles.errorContainer}>
+                    <RN.Text style={styles.errorIcon}>⚠️</RN.Text>
+                    <RN.Text style={styles.errorText}>{error}</RN.Text>
+                </RN.View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <RN.View style={styles.header}>
                 <RN.Text style={styles.title}>Aylık Vakitler</RN.Text>
+                {location && (
+                    <RN.Text style={styles.locationText}>
+                        📍 {location.cityName}, {location.districtName}
+                    </RN.Text>
+                )}
             </RN.View>
             {renderHeader()}
-            <RN.FlatList
-                data={prayerData}
-                keyExtractor={(item: any) => item.id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-            />
+            {prayerData.length > 0 ? (
+                <RN.FlatList
+                    data={prayerData}
+                    keyExtractor={(item: any) => item.id}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                />
+            ) : (
+                <RN.View style={styles.emptyContainer}>
+                    <RN.Text style={styles.emptyText}>Bu ay için veri bulunamadı.</RN.Text>
+                </RN.View>
+            )}
         </SafeAreaView>
     );
 };
@@ -95,6 +186,11 @@ const styles = RN.StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         color: Colors.primary,
+    },
+    locationText: {
+        fontSize: 13,
+        color: '#64748B',
+        marginTop: 4,
     },
     tableHeader: {
         flexDirection: 'row',
@@ -150,6 +246,40 @@ const styles = RN.StyleSheet.create({
         color: '#3B82F6',
         fontWeight: 'bold',
         fontSize: 12,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: '#64748B',
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    errorIcon: {
+        fontSize: 48,
+        marginBottom: 16,
+    },
+    errorText: {
+        fontSize: 16,
+        color: '#64748B',
+        textAlign: 'center',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#64748B',
     },
 });
 
