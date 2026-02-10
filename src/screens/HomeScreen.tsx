@@ -19,6 +19,11 @@ interface HomeScreenProps {
 
 const { width } = RN.Dimensions.get('window');
 
+// Android için LayoutAnimation desteğini etkinleştir
+if (RN.Platform.OS === 'android' && RN.UIManager.setLayoutAnimationEnabledExperimental) {
+    RN.UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 // Reusable Circular Timer Component
 const TimerCircle = ({
     size,
@@ -100,6 +105,10 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
 
     const handleTimerPress = (index: number) => {
         if (index === 1) return; // Ortadaki zaten odaklanmış durumda
+
+        // Animasyon ekle
+        RN.LayoutAnimation.configureNext(RN.LayoutAnimation.Presets.easeInEaseOut);
+
         const newPositions = [...timerPositions];
         const temp = newPositions[1];
         newPositions[1] = newPositions[index];
