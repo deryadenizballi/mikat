@@ -1,13 +1,13 @@
 export const Colors = {
-    primary: '#0B1C2D',
-    secondary: '#1E3A5F', // Keeping a shade of the old primary as secondary if needed
+    primary: '#064E3B', // Dark Emerald
+    secondary: '#059669', // Emerald
     background: '#F8FAFC',
     cardBackground: '#FFFFFF',
-    textPrimary: '#0B1C2D',
+    textPrimary: '#064E3B',
     textSecondary: '#64748B',
     textLight: '#B8C5D4',
     white: '#FFFFFF',
-    accent: '#3B82F6', // The blue highlight
+    accent: '#10B981', // Emerald 500
     border: '#E2E8F0',
     disabled: '#B8C5D4',
     disabledText: '#8A9AAD',

@@ -9,8 +9,10 @@ import {
     TouchableWithoutFeedback as RNTouchableWithoutFeedback,
     Keyboard,
     Dimensions,
+    TouchableOpacity,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -23,6 +25,8 @@ import { OnboardingStackParamList } from '../navigation/OnboardingNavigator';
 import PrimaryButton from '../components/PrimaryButton';
 import TextInputField from '../components/TextInputField';
 import { Colors } from '../styles/theme';
+
+import { saveUserName } from '../services/storageService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,9 +42,11 @@ interface OnboardingScreenProps {
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     const [name, setName] = useState<string>('');
 
-    const handleNext = () => {
-        console.log('User name:', name);
-        navigation.navigate('CitySelection', { userName: name });
+    const handleNext = async () => {
+        if (name.trim()) {
+            await saveUserName(name);
+            navigation.navigate('CitySelection', { userName: name });
+        }
     };
 
     const isButtonDisabled = name.trim().length === 0;
@@ -52,6 +58,13 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                 source={require('../../assets/onboard-bg.jpg')}
                 style={styles.absoluteBackground}
                 resizeMode="cover"
+            />
+
+            {/* Green Overlay Gradient */}
+            <LinearGradient
+                colors={['transparent', 'rgba(6, 78, 59, 0.8)', 'rgba(6, 78, 59, 1)']}
+                locations={[0, 0.4, 1]}
+                style={StyleSheet.absoluteFill}
             />
 
 
@@ -66,22 +79,21 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                             <View style={styles.logoSection}>
                                 <View style={styles.logoContainer}>
                                     <Image
-                                        source={require('../../assets/logo.png')}
+                                        source={require('../../assets/mikat-logo.png')}
                                         style={styles.logo}
                                         resizeMode="contain"
                                     />
                                 </View>
-                                <Text style={styles.appName}>Mikat</Text>
+
                                 <Text style={styles.subtitle}>
                                     "Her vakit bir hatırlayış, her an bir huzur"
                                 </Text>
                             </View>
 
 
-                            {/* Input Section */}
-                            <View style={styles.inputSection}>
-                                <Text style={styles.inputLabel}>Size nasıl hitap edelim?</Text>
-                                <View style={styles.glassWrapper}>
+                            {/* Input & Button Row */}
+                            <View style={styles.inputRow}>
+                                <View style={styles.inputWrapper}>
                                     <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
                                     <TextInputField
                                         value={name}
@@ -93,18 +105,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                                         inputStyle={styles.inputText}
                                     />
                                 </View>
-                            </View>
 
-
-                            {/* Button Section */}
-                            <View style={styles.buttonSection}>
-                                <PrimaryButton
-                                    title="Başla"
+                                <TouchableOpacity
+                                    style={[styles.nextButton, isButtonDisabled && styles.disabledButton]}
                                     onPress={handleNext}
                                     disabled={isButtonDisabled}
-                                    style={styles.button}
-                                    textStyle={styles.buttonTitle}
-                                />
+                                >
+                                    <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+                                    <Text style={styles.nextButtonText}>›</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </TouchableWithoutFeedback>
@@ -146,15 +155,15 @@ const styles = StyleSheet.create({
         paddingTop: 20,
     },
     logoContainer: {
-        width: 100,
-        height: 100,
+        width: 140,
+        height: 140,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
     },
     logo: {
-        width: 60,
-        height: 60,
+        width: '100%',
+        height: '100%',
     },
     appName: {
         fontSize: 42,
@@ -178,16 +187,20 @@ const styles = StyleSheet.create({
         textShadowRadius: 4,
     },
 
-    inputSection: {
-        marginBottom: 30,
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 40,
     },
-    inputLabel: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        marginBottom: 12,
-        fontWeight: '600',
-        marginLeft: 4,
-        opacity: 0.9,
+    inputWrapper: {
+        flex: 1,
+        borderRadius: 14,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        height: 60,
+        marginRight: 16,
+        justifyContent: 'center',
     },
     input: {
         alignSelf: 'stretch',
@@ -195,28 +208,32 @@ const styles = StyleSheet.create({
         borderWidth: 0,
         shadowOpacity: 0,
         elevation: 0,
+        height: '100%',
     },
     inputText: {
         color: '#FFFFFF',
+        height: '100%',
+        textAlignVertical: 'center',
     },
-    glassWrapper: {
+    nextButton: {
+        width: 60,
+        height: 60,
         borderRadius: 14,
         overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.3)',
+        backgroundColor: 'rgba(255,255,255,0.1)',
     },
-    buttonSection: {
-        paddingTop: 10,
+    disabledButton: {
+        opacity: 0.5,
     },
-    button: {
-        alignSelf: 'stretch',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 30,
-        shadowColor: '#000',
-        shadowOpacity: 0.3,
-    },
-    buttonTitle: {
-        color: '#111',
+    nextButtonText: {
+        color: '#FFFFFF',
+        fontSize: 36,
+        fontWeight: '300',
+        marginTop: -6,
     },
 
 

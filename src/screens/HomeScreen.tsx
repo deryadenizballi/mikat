@@ -27,11 +27,19 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
     return (
         <RN.View style={styles.container}>
             {/* Premium Dark Gradient Background */}
+            {/* Premium Dark Emerald Gradient Background */}
             <LinearGradient
-                colors={['#0F172A', '#0B121C', '#05080D']}
+                colors={['#064E3B', '#022C22', '#000000']}
                 style={RN.StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
+            />
+
+            {/* Decorative Top Image */}
+            <RN.Image
+                source={require('../../assets/home-bg-ui.png')}
+                style={styles.decorativeImage}
+                resizeMode="contain"
             />
 
             <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -42,7 +50,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                     {/* 2. Date Navigation Card */}
                     <RN.View style={styles.dateCard}>
                         <LinearGradient
-                            colors={['rgba(0, 225, 255, 0.12)', 'rgba(41, 121, 255, 0.12)']}
+                            colors={['rgba(16, 185, 129, 0.12)', 'rgba(5, 150, 105, 0.12)']}
                             style={RN.StyleSheet.absoluteFill}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
@@ -70,8 +78,8 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                                 <Svg height="65" width="160">
                                     <Defs>
                                         <SvgGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                            <Stop offset="0%" stopColor="#00E5FF" />
-                                            <Stop offset="100%" stopColor="#2979FF" />
+                                            <Stop offset="0%" stopColor="#34D399" />
+                                            <Stop offset="100%" stopColor="#10B981" />
                                         </SvgGradient>
                                     </Defs>
                                     <SvgText
@@ -92,8 +100,8 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                             <Svg height={width * 0.55} width={width * 0.55} style={styles.progressRing}>
                                 <Defs>
                                     <SvgGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <Stop offset="0%" stopColor="#00E5FF" />
-                                        <Stop offset="100%" stopColor="#2979FF" />
+                                        <Stop offset="0%" stopColor="#34D399" />
+                                        <Stop offset="100%" stopColor="#10B981" />
                                     </SvgGradient>
                                 </Defs>
                                 <Circle
@@ -113,7 +121,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                     {/* 4. Namaz Vakitleri Grid Section */}
                     <RN.View style={styles.vakitlerContainer}>
                         <LinearGradient
-                            colors={['rgba(0, 229, 255, 0.15)', 'rgba(41, 121, 255, 0.05)']}
+                            colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
                             style={RN.StyleSheet.absoluteFill}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
@@ -133,7 +141,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                             ].map((vakit, index) => (
                                 <RN.View key={index} style={[styles.vakitCard, vakit.active && styles.vakitCardActive]}>
                                     <LinearGradient
-                                        colors={vakit.active ? ['rgba(0, 229, 255, 0.25)', 'rgba(41, 121, 255, 0.15)'] : ['rgba(255, 255, 255, 0.03)', 'rgba(255, 255, 255, 0.01)']}
+                                        colors={vakit.active ? ['rgba(52, 211, 153, 0.25)', 'rgba(16, 185, 129, 0.15)'] : ['rgba(255, 255, 255, 0.03)', 'rgba(255, 255, 255, 0.01)']}
                                         style={RN.StyleSheet.absoluteFill}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
@@ -152,7 +160,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                             onPress={() => setIsMealModalVisible(true)}
                         >
                             <LinearGradient
-                                colors={['rgba(0, 229, 255, 0.15)', 'rgba(41, 121, 255, 0.05)']}
+                                colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
                                 style={RN.StyleSheet.absoluteFill}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
@@ -167,7 +175,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                             onPress={() => setIsHadithModalVisible(true)}
                         >
                             <LinearGradient
-                                colors={['rgba(0, 229, 255, 0.15)', 'rgba(41, 121, 255, 0.05)']}
+                                colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
                                 style={RN.StyleSheet.absoluteFill}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
@@ -249,7 +257,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
 const styles = RN.StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0B121C',
+        backgroundColor: '#022C22',
     },
     safeArea: {
         flex: 1,
@@ -306,9 +314,9 @@ const styles = RN.StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 12,
-        backgroundColor: 'rgba(30, 41, 59, 0.3)',
+        backgroundColor: 'rgba(6, 78, 59, 0.3)',
         borderWidth: 1,
-        borderColor: 'rgba(0, 229, 255, 0.2)',
+        borderColor: 'rgba(16, 185, 129, 0.2)',
     },
     arrowBtn: {
         width: 36,
@@ -369,11 +377,11 @@ const styles = RN.StyleSheet.create({
     vakitlerContainer: {
         marginTop: 10,
         marginBottom: 0,
-        backgroundColor: 'rgba(30, 41, 59, 0.3)',
+        backgroundColor: 'rgba(6, 78, 59, 0.3)',
         borderRadius: 24,
         padding: 20,
         borderWidth: 1,
-        borderColor: 'rgba(0, 229, 255, 0.2)',
+        borderColor: 'rgba(16, 185, 129, 0.2)',
         overflow: 'hidden',
     },
     vakitHeader: {
@@ -405,7 +413,7 @@ const styles = RN.StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.05)',
     },
     vakitCardActive: {
-        borderColor: 'rgba(0, 229, 255, 0.5)',
+        borderColor: 'rgba(16, 185, 129, 0.5)',
         borderWidth: 1.5,
     },
     vakitLabel: {
@@ -414,7 +422,7 @@ const styles = RN.StyleSheet.create({
         marginBottom: 4,
     },
     vakitLabelActive: {
-        color: '#00E1FF',
+        color: '#34D399',
         fontWeight: 'bold',
     },
     vakitTime: {
@@ -449,9 +457,9 @@ const styles = RN.StyleSheet.create({
         borderRadius: 24,
         overflow: 'hidden',
         padding: 20,
-        backgroundColor: 'rgba(30, 41, 59, 0.3)',
+        backgroundColor: 'rgba(6, 78, 59, 0.3)',
         borderWidth: 1,
-        borderColor: 'rgba(0, 229, 255, 0.2)',
+        borderColor: 'rgba(16, 185, 129, 0.2)',
     },
     actionEmoji: {
         fontSize: 24,
@@ -474,7 +482,7 @@ const styles = RN.StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: '#161F2C',
+        backgroundColor: '#064E3B',
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         padding: 24,
@@ -531,6 +539,15 @@ const styles = RN.StyleSheet.create({
         fontSize: 14,
         textAlign: 'center',
         marginTop: 20,
+    },
+    decorativeImage: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        height: 350, // Adjust height as needed
+        opacity: 0.05,
     },
 });
 

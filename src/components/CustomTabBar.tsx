@@ -46,7 +46,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
                 <View style={styles.circleWrapper}>
                     <View style={styles.shadowBlue} />
                     <LinearGradient
-                        colors={['#00E5FF', '#2979FF']}
+                        colors={['#34D399', '#10B981']}
                         style={styles.activeCircle}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     },
     blurBackground: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(15, 23, 42, 0.75)', // Beyaz ikonlar için koyu arka plan
+        backgroundColor: 'rgba(6, 78, 59, 0.85)', // Dark Emerald background
         borderRadius: 35,
         overflow: 'hidden',
         borderWidth: 1,
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     activeIconWrapper: {
-        marginTop: -32,
+        marginTop: -5,
         marginBottom: 0,
     },
     label: {
@@ -198,13 +198,13 @@ const styles = StyleSheet.create({
         height: 65,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: -32,
+        marginTop: -5,
     },
     activeCircle: {
         position: 'absolute',
-        width: 65,
-        height: 65,
-        borderRadius: 32.5,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
     },
     centerIcon: {
         zIndex: 2,
@@ -214,11 +214,11 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#2979FF',
+        backgroundColor: '#10B981',
         opacity: 0.4,
         transform: [{ scale: 1.2 }],
         // iOS Shadow
-        shadowColor: '#2979FF',
+        shadowColor: '#10B981',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 1,
         shadowRadius: 20,

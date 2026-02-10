@@ -250,7 +250,7 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
             />
 
             <LinearGradient
-                colors={['transparent', 'rgba(11, 28, 45, 0.8)', 'rgba(11, 28, 45, 1)']}
+                colors={['transparent', 'rgba(6, 78, 59, 0.8)', 'rgba(6, 78, 59, 1)']}
                 locations={[0, 0.2, 0.5]}
                 style={StyleSheet.absoluteFill}
             />
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: '#1E3A5F',
+        backgroundColor: '#064E3B',
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         maxHeight: height * 0.6,

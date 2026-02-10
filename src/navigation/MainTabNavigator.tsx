@@ -1,10 +1,10 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import PrayerTimesScreen from '../screens/PrayerTimesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import CustomTabBar, { VakitIcon, HouseIcon, ProfileIcon } from '../components/CustomTabBar';
+import CustomTabBar, { VakitIcon, ProfileIcon } from '../components/CustomTabBar';
 
 export type MainTabParamList = {
     Home: { city: string; district: string };
@@ -36,7 +36,13 @@ const MainTabNavigator: React.FC<any> = ({ route }) => {
                 component={HomeScreen}
                 initialParams={{ city, district }}
                 options={{
-                    tabBarIcon: ({ color, size }) => <HouseIcon color={color} size={size} />,
+                    tabBarIcon: ({ size }) => (
+                        <Image
+                            source={require('../../assets/mikat-home.png')}
+                            style={{ width: size, height: size }}
+                            resizeMode="contain"
+                        />
+                    ),
                 }}
             />
             <Tab.Screen

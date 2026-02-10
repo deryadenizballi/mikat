@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as RN from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Colors } from '../styles/theme';
 
 // Firebase Services
@@ -11,7 +13,9 @@ import {
     getIftarNotification,
     getSahurNotification,
     saveIftarNotification,
-    saveSahurNotification
+    saveSahurNotification,
+    getUserName,
+    saveUserName
 } from '../services/storageService';
 import { SelectedLocation } from '../types';
 
@@ -26,6 +30,8 @@ interface DistrictItem {
 }
 
 const SettingsScreen: React.FC = () => {
+    const [userName, setUserName] = useState('');
+    const [isEditingName, setIsEditingName] = useState(false);
     const [iftarNotification, setIftarNotification] = useState(true);
     const [sahurNotification, setSahurNotification] = useState(true);
 
@@ -47,6 +53,10 @@ const SettingsScreen: React.FC = () => {
     useEffect(() => {
         async function initialize() {
             try {
+                // Kullanıcı adını yükle
+                const name = await getUserName();
+                if (name) setUserName(name);
+
                 // Mevcut konumu yükle
                 const location = await getSelectedLocation();
                 setCurrentLocation(location);
@@ -74,6 +84,11 @@ const SettingsScreen: React.FC = () => {
         }
         initialize();
     }, []);
+
+    const handleNameSubmit = async () => {
+        await saveUserName(userName);
+        setIsEditingName(false);
+    };
 
     // Şehir seçildiğinde
     const handleCitySelect = async (city: CityItem) => {
@@ -122,8 +137,8 @@ const SettingsScreen: React.FC = () => {
         await saveSahurNotification(value);
     };
 
-    const SettingItem = ({ icon, title, subtitle, onPress }: any) => (
-        <RN.TouchableOpacity style={styles.item} onPress={onPress}>
+    const SettingItem = ({ icon, title, subtitle, onPress, isLast }: any) => (
+        <RN.TouchableOpacity style={[styles.item, isLast && { borderBottomWidth: 0 }]} onPress={onPress}>
             <RN.View style={styles.itemLeft}>
                 <RN.View style={styles.iconContainer}>
                     <RN.Text style={styles.icon}>{icon}</RN.Text>
@@ -161,8 +176,14 @@ const SettingsScreen: React.FC = () => {
             animationType="slide"
             onRequestClose={onClose}
         >
-            <RN.View style={styles.modalOverlay}>
+            <RN.TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={onClose}
+            >
+                <BlurView intensity={20} tint="dark" style={RN.StyleSheet.absoluteFill} />
                 <RN.View style={styles.modalContent}>
+                    <RN.View style={styles.modalHandle} />
                     <RN.View style={styles.modalHeader}>
                         <RN.Text style={styles.modalTitle}>{title}</RN.Text>
                         <RN.TouchableOpacity onPress={onClose}>
@@ -183,128 +204,227 @@ const SettingsScreen: React.FC = () => {
                         style={styles.modalList}
                     />
                 </RN.View>
-            </RN.View>
+            </RN.TouchableOpacity>
         </RN.Modal>
     );
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.container} edges={['top']}>
-                <RN.View style={styles.loadingContainer}>
-                    <RN.ActivityIndicator size="large" color={Colors.primary} />
-                </RN.View>
-            </SafeAreaView>
+            <RN.View style={styles.container}>
+                <LinearGradient
+                    colors={['#0F172A', '#0B121C', '#05080D']}
+                    style={RN.StyleSheet.absoluteFill}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                />
+                <SafeAreaView style={styles.safeArea} edges={['top']}>
+                    <RN.View style={styles.loadingContainer}>
+                        <RN.ActivityIndicator size="large" color="#34D399" />
+                    </RN.View>
+                </SafeAreaView>
+            </RN.View>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            <RN.View style={styles.header}>
-                <RN.Text style={styles.headerIcon}>⚙️</RN.Text>
-                <RN.Text style={styles.title}>Ayarlar</RN.Text>
-            </RN.View>
+        <RN.View style={styles.container}>
+            {/* Premium Dark Gradient Background */}
+            <LinearGradient
+                colors={['#064E3B', '#022C22', '#000000']}
+                style={RN.StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
 
-            <RN.ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* Konum Ayarları */}
-                <RN.View style={styles.section}>
-                    <SettingItem
-                        icon="📍"
-                        title="Şehir Seçimi"
-                        subtitle={currentLocation?.cityName || 'Seçilmedi'}
-                        onPress={() => setCityModalVisible(true)}
-                    />
-                    <SettingItem
-                        icon="🏢"
-                        title="İlçe Seçimi"
-                        subtitle={currentLocation?.districtName || 'Seçilmedi'}
-                        onPress={() => {
-                            if (currentLocation?.cityPlateCode) {
-                                setDistrictModalVisible(true);
-                            } else {
-                                RN.Alert.alert('Uyarı', 'Önce şehir seçmelisiniz.');
-                            }
-                        }}
-                    />
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
+                <RN.View style={styles.header}>
+                    <RN.Text style={styles.headerIcon}>⚙️</RN.Text>
+                    <RN.Text style={styles.title}>Ayarlar</RN.Text>
                 </RN.View>
 
-                {/* Güncelleme */}
-                <RN.View style={styles.section}>
-                    <SettingItem
-                        icon="🔄"
-                        title="Vakitleri Güncelle"
-                    />
-                </RN.View>
-
-                {/* Bildirim Ayarları */}
-                <RN.View style={styles.notificationSection}>
-                    <RN.View style={styles.notificationHeader}>
-                        <RN.Text style={styles.icon}>🔔</RN.Text>
-                        <RN.Text style={styles.sectionTitle}>Bildirim Ayarları</RN.Text>
+                <RN.ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    {/* Profil / İsim Ayarı */}
+                    <RN.View style={styles.section}>
+                        <LinearGradient
+                            colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
+                            style={RN.StyleSheet.absoluteFill}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        />
+                        <RN.TouchableOpacity
+                            style={[styles.item, { borderBottomWidth: 0, justifyContent: 'space-between' }]}
+                            activeOpacity={1}
+                            onPress={() => !isEditingName && setIsEditingName(true)}
+                        >
+                            <RN.View style={[styles.itemLeft, { flex: 1, marginRight: 10 }]}>
+                                <RN.View style={styles.iconContainer}>
+                                    <RN.Text style={styles.icon}>👤</RN.Text>
+                                </RN.View>
+                                <RN.View style={{ flex: 1 }}>
+                                    <RN.Text style={styles.itemSubtitle}>Kullanıcı Adı</RN.Text>
+                                    {isEditingName ? (
+                                        <RN.TextInput
+                                            style={styles.nameInput}
+                                            value={userName}
+                                            onChangeText={setUserName}
+                                            onBlur={handleNameSubmit}
+                                            onSubmitEditing={handleNameSubmit}
+                                            autoFocus
+                                            placeholder="Adınızı giriniz"
+                                            placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                                            returnKeyType="done"
+                                        />
+                                    ) : (
+                                        <RN.Text style={styles.nameText} numberOfLines={1}>
+                                            {userName || 'Misafir Kullanıcı'}
+                                        </RN.Text>
+                                    )}
+                                </RN.View>
+                            </RN.View>
+                            <RN.TouchableOpacity
+                                onPress={() => isEditingName ? handleNameSubmit() : setIsEditingName(true)}
+                                style={{
+                                    padding: 8,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                    borderRadius: 8,
+                                }}
+                            >
+                                <RN.Text style={styles.actionIcon}>{isEditingName ? '✅' : '✏️'}</RN.Text>
+                            </RN.TouchableOpacity>
+                        </RN.TouchableOpacity>
                     </RN.View>
 
-                    <RN.View style={styles.switchRow}>
-                        <RN.Text style={styles.switchLabel}>İftar Bildirimi</RN.Text>
-                        <RN.Switch
-                            value={iftarNotification}
-                            onValueChange={handleIftarToggle}
-                            trackColor={{ false: Colors.border, true: Colors.accent }}
-                            thumbColor="#FFFFFF"
+                    {/* Konum Ayarları */}
+                    <RN.View style={styles.section}>
+                        <LinearGradient
+                            colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
+                            style={RN.StyleSheet.absoluteFill}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        />
+                        <SettingItem
+                            icon="📍"
+                            title="Şehir Seçimi"
+                            subtitle={currentLocation?.cityName || 'Seçilmedi'}
+                            onPress={() => setCityModalVisible(true)}
+                        />
+                        <SettingItem
+                            icon="🏢"
+                            title="İlçe Seçimi"
+                            subtitle={currentLocation?.districtName || 'Seçilmedi'}
+                            onPress={() => {
+                                if (currentLocation?.cityPlateCode) {
+                                    setDistrictModalVisible(true);
+                                } else {
+                                    RN.Alert.alert('Uyarı', 'Önce şehir seçmelisiniz.');
+                                }
+                            }}
+                            isLast={true}
                         />
                     </RN.View>
 
-                    <RN.View style={styles.divider} />
-
-                    <RN.View style={styles.switchRow}>
-                        <RN.Text style={styles.switchLabel}>Sahur Bildirimi</RN.Text>
-                        <RN.Switch
-                            value={sahurNotification}
-                            onValueChange={handleSahurToggle}
-                            trackColor={{ false: Colors.border, true: Colors.accent }}
-                            thumbColor="#FFFFFF"
+                    {/* Güncelleme */}
+                    <RN.View style={styles.section}>
+                        <LinearGradient
+                            colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
+                            style={RN.StyleSheet.absoluteFill}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        />
+                        <SettingItem
+                            icon="🔄"
+                            title="Vakitleri Güncelle"
+                            isLast={true}
                         />
                     </RN.View>
-                </RN.View>
 
-                {/* Diğer */}
-                <RN.View style={styles.section}>
-                    <SettingItem
-                        icon="⭐"
-                        title="Uygulamayı Değerlendir"
-                    />
-                </RN.View>
+                    {/* Bildirim Ayarları */}
+                    <RN.View style={styles.notificationSection}>
+                        <LinearGradient
+                            colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
+                            style={RN.StyleSheet.absoluteFill}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        />
+                        <RN.View style={styles.notificationHeader}>
+                            <RN.Text style={styles.icon}>🔔</RN.Text>
+                            <RN.Text style={styles.sectionTitle}>Bildirim Ayarları</RN.Text>
+                        </RN.View>
 
-                <RN.Text style={styles.versionText}>Versiyon 1.0.0</RN.Text>
-            </RN.ScrollView>
+                        <RN.View style={styles.switchRow}>
+                            <RN.Text style={styles.switchLabel}>İftar Bildirimi</RN.Text>
+                            <RN.Switch
+                                value={iftarNotification}
+                                onValueChange={handleIftarToggle}
+                                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(52, 211, 153, 0.5)' }}
+                                thumbColor="#FFFFFF"
+                            />
+                        </RN.View>
 
-            {/* Şehir Seçim Modal */}
-            <SelectionModal
-                visible={cityModalVisible}
-                onClose={() => setCityModalVisible(false)}
-                data={cities}
-                onSelect={handleCitySelect}
-                title="Şehir Seçiniz"
-                keyExtractor={(item) => item.plateCode}
-                labelExtractor={(item) => item.name}
-            />
+                        <RN.View style={styles.divider} />
 
-            {/* İlçe Seçim Modal */}
-            <SelectionModal
-                visible={districtModalVisible}
-                onClose={() => setDistrictModalVisible(false)}
-                data={districts}
-                onSelect={handleDistrictSelect}
-                title="İlçe Seçiniz"
-                keyExtractor={(item) => item.key}
-                labelExtractor={(item) => item.name}
-            />
-        </SafeAreaView>
+                        <RN.View style={styles.switchRow}>
+                            <RN.Text style={styles.switchLabel}>Sahur Bildirimi</RN.Text>
+                            <RN.Switch
+                                value={sahurNotification}
+                                onValueChange={handleSahurToggle}
+                                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(52, 211, 153, 0.5)' }}
+                                thumbColor="#FFFFFF"
+                            />
+                        </RN.View>
+                    </RN.View>
+
+                    {/* Diğer */}
+                    <RN.View style={styles.section}>
+                        <LinearGradient
+                            colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
+                            style={RN.StyleSheet.absoluteFill}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        />
+                        <SettingItem
+                            icon="⭐"
+                            title="Uygulamayı Değerlendir"
+                            isLast={true}
+                        />
+                    </RN.View>
+
+                    <RN.Text style={styles.versionText}>Versiyon 1.0.0</RN.Text>
+                </RN.ScrollView>
+
+                {/* Şehir Seçim Modal */}
+                <SelectionModal
+                    visible={cityModalVisible}
+                    onClose={() => setCityModalVisible(false)}
+                    data={cities}
+                    onSelect={handleCitySelect}
+                    title="Şehir Seçiniz"
+                    keyExtractor={(item) => item.plateCode}
+                    labelExtractor={(item) => item.name}
+                />
+
+                {/* İlçe Seçim Modal */}
+                <SelectionModal
+                    visible={districtModalVisible}
+                    onClose={() => setDistrictModalVisible(false)}
+                    data={districts}
+                    onSelect={handleDistrictSelect}
+                    title="İlçe Seçiniz"
+                    keyExtractor={(item) => item.key}
+                    labelExtractor={(item) => item.name}
+                />
+            </SafeAreaView>
+        </RN.View>
     );
 };
 
 const styles = RN.StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: '#022C22',
+    },
+    safeArea: {
+        flex: 1,
     },
     loadingContainer: {
         flex: 1,
@@ -315,30 +435,27 @@ const styles = RN.StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         padding: 24,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
     },
     headerIcon: {
         fontSize: 24,
         marginRight: 12,
     },
     title: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: 'bold',
-        color: Colors.primary,
+        color: '#FFFFFF',
     },
     scrollContent: {
-        padding: 16,
+        padding: 20,
     },
     section: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        marginBottom: 16,
+        backgroundColor: 'rgba(6, 78, 59, 0.4)',
+        borderRadius: 24,
+        marginBottom: 20,
         overflow: 'hidden',
         borderWidth: 1,
-        borderBottomWidth: 2,
-        borderColor: '#E2E8F0',
+        borderColor: 'rgba(16, 185, 129, 0.2)',
+        paddingVertical: 10,
     },
     item: {
         flexDirection: 'row',
@@ -346,58 +463,56 @@ const styles = RN.StyleSheet.create({
         justifyContent: 'space-between',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
     },
     itemLeft: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     iconContainer: {
-        width: 36,
-        height: 36,
-        backgroundColor: '#F1F5F9',
-        borderRadius: 10,
+        width: 40,
+        height: 40,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 16,
     },
     icon: {
-        fontSize: 18,
+        fontSize: 20,
     },
     itemTitle: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '600',
-        color: Colors.primary,
+        color: '#FFFFFF',
     },
     itemSubtitle: {
         fontSize: 13,
-        color: '#64748B',
-        marginTop: 2,
-        fontWeight: '500',
+        color: 'rgba(255, 255, 255, 0.5)',
+        marginTop: 4,
     },
     chevron: {
         fontSize: 24,
-        color: '#CBD5E1',
-        fontWeight: '300',
+        color: 'rgba(255, 255, 255, 0.3)',
     },
     notificationSection: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
+        backgroundColor: 'rgba(6, 78, 59, 0.4)',
+        borderRadius: 24,
+        marginBottom: 20,
+        overflow: 'hidden',
         borderWidth: 1,
-        borderBottomWidth: 2,
-        borderColor: '#E2E8F0',
+        borderColor: 'rgba(16, 185, 129, 0.2)',
+        padding: 20,
     },
     notificationHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.primary,
+        color: '#FFFFFF',
         marginLeft: 12,
     },
     switchRow: {
@@ -407,17 +522,18 @@ const styles = RN.StyleSheet.create({
         paddingVertical: 12,
     },
     switchLabel: {
-        fontSize: 15,
-        color: '#334155',
+        fontSize: 16,
+        color: '#FFFFFF',
         fontWeight: '500',
     },
     divider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        marginVertical: 10,
     },
     versionText: {
         textAlign: 'center',
-        color: '#94A3B8',
+        color: 'rgba(255, 255, 255, 0.3)',
         fontSize: 12,
         marginTop: 10,
         marginBottom: 30,
@@ -425,43 +541,71 @@ const styles = RN.StyleSheet.create({
     // Modal Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        maxHeight: RN.Dimensions.get('window').height * 0.6,
+        backgroundColor: '#161F2C',
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        maxHeight: RN.Dimensions.get('window').height * 0.7,
+        paddingBottom: 40,
+    },
+    modalHandle: {
+        width: 40,
+        height: 5,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginTop: 15,
+        marginBottom: 10,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
+        padding: 24,
         borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+        paddingTop: 10,
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.primary,
+        color: '#FFFFFF',
     },
     modalClose: {
         fontSize: 24,
-        color: '#94A3B8',
+        color: 'rgba(255, 255, 255, 0.5)',
     },
     modalList: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
     },
     modalItem: {
         paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        paddingHorizontal: 20,
+        // Removed borderBottomWidth to clean up list items
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
     },
     modalItemText: {
         fontSize: 16,
-        color: '#334155',
+        color: '#FFFFFF',
+    },
+    nameInput: {
+        fontSize: 16,
+        color: '#FFFFFF',
+        fontWeight: '600',
+        paddingVertical: 0,
+        marginTop: 4,
+        height: 24,
+    },
+    nameText: {
+        fontSize: 16,
+        color: '#FFFFFF',
+        fontWeight: '600',
+        marginTop: 4,
+    },
+    actionIcon: {
+        fontSize: 18,
     },
 });
 
