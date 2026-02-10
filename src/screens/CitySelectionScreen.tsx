@@ -31,8 +31,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 // Firebase Services
 import { getAllCities, getDistrictsForCity } from '../services/prayerTimesService';
-import { saveSelectedLocation } from '../services/storageService';
 import { SelectedLocation } from '../types';
+import { useApp } from '../context/AppContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -58,8 +58,92 @@ interface DistrictItem {
     name: string;
 }
 
+// Dropdown bileşeni
+const DropdownSelector = ({
+    label,
+    value,
+    onPress,
+    loading,
+    disabled
+}: {
+    label: string;
+    value: string | null;
+    onPress: () => void;
+    loading?: boolean;
+    disabled?: boolean;
+}) => (
+    <TouchableOpacity
+        style={[styles.dropdown, disabled && styles.dropdownDisabled]}
+        onPress={onPress}
+        activeOpacity={0.7}
+        disabled={disabled}
+    >
+        {loading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+            <>
+                <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]}>
+                    {value || label}
+                </Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
+            </>
+        )}
+    </TouchableOpacity>
+);
+
+// Modal liste bileşeni
+const SelectionModal = ({
+    visible,
+    onClose,
+    data,
+    onSelect,
+    title,
+    keyExtractor,
+    labelExtractor
+}: {
+    visible: boolean;
+    onClose: () => void;
+    data: any[];
+    onSelect: (item: any) => void;
+    title: string;
+    keyExtractor: (item: any) => string;
+    labelExtractor: (item: any) => string;
+}) => (
+    <Modal
+        visible={visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={onClose}
+    >
+        <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>{title}</Text>
+                    <TouchableOpacity onPress={onClose}>
+                        <Text style={styles.modalClose}>✕</Text>
+                    </TouchableOpacity>
+                </View>
+                <FlatList
+                    data={data}
+                    keyExtractor={keyExtractor}
+                    renderItem={({ item }: { item: any }) => (
+                        <TouchableOpacity
+                            style={styles.modalItem}
+                            onPress={() => onSelect(item)}
+                        >
+                            <Text style={styles.modalItemText}>{labelExtractor(item)}</Text>
+                        </TouchableOpacity>
+                    )}
+                    style={styles.modalList}
+                />
+            </View>
+        </View>
+    </Modal>
+);
+
 const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, route }) => {
     const { userName } = route.params;
+    const { setLocation } = useApp();
 
     // Seçilen şehir ve ilçe
     const [selectedCity, setSelectedCity] = useState<CityItem | null>(null);
@@ -140,7 +224,7 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                     districtKey: selectedDistrict.key,
                     districtName: selectedDistrict.name,
                 };
-                await saveSelectedLocation(location);
+                await setLocation(location);
                 navigation.navigate('MainApp', {
                     city: selectedCity.name,
                     district: selectedDistrict.name
@@ -158,88 +242,7 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
     // İlk 4 şehir (hızlı seçim için)
     const quickCities = cities.slice(0, 4);
 
-    // Dropdown bileşeni
-    const DropdownSelector = ({
-        label,
-        value,
-        onPress,
-        loading,
-        disabled
-    }: {
-        label: string;
-        value: string | null;
-        onPress: () => void;
-        loading?: boolean;
-        disabled?: boolean;
-    }) => (
-        <TouchableOpacity
-            style={[styles.dropdown, disabled && styles.dropdownDisabled]}
-            onPress={onPress}
-            activeOpacity={0.7}
-            disabled={disabled}
-        >
-            {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-                <>
-                    <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]}>
-                        {value || label}
-                    </Text>
-                    <Text style={styles.dropdownArrow}>▼</Text>
-                </>
-            )}
-        </TouchableOpacity>
-    );
 
-    // Modal liste bileşeni
-    const SelectionModal = ({
-        visible,
-        onClose,
-        data,
-        onSelect,
-        title,
-        keyExtractor,
-        labelExtractor
-    }: {
-        visible: boolean;
-        onClose: () => void;
-        data: any[];
-        onSelect: (item: any) => void;
-        title: string;
-        keyExtractor: (item: any) => string;
-        labelExtractor: (item: any) => string;
-    }) => (
-        <Modal
-            visible={visible}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={onClose}
-        >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{title}</Text>
-                        <TouchableOpacity onPress={onClose}>
-                            <Text style={styles.modalClose}>✕</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <FlatList
-                        data={data}
-                        keyExtractor={keyExtractor}
-                        renderItem={({ item }: { item: any }) => (
-                            <TouchableOpacity
-                                style={styles.modalItem}
-                                onPress={() => onSelect(item)}
-                            >
-                                <Text style={styles.modalItemText}>{labelExtractor(item)}</Text>
-                            </TouchableOpacity>
-                        )}
-                        style={styles.modalList}
-                    />
-                </View>
-            </View>
-        </Modal>
-    );
 
     return (
         <View style={styles.flex1}>

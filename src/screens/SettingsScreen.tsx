@@ -29,14 +29,87 @@ interface DistrictItem {
     name: string;
 }
 
+import { useApp } from '../context/AppContext';
+
+const SettingItem = ({ icon, title, subtitle, onPress, isLast }: any) => (
+    <RN.TouchableOpacity style={[styles.item, isLast && { borderBottomWidth: 0 }]} onPress={onPress}>
+        <RN.View style={styles.itemLeft}>
+            <RN.View style={styles.iconContainer}>
+                <RN.Text style={styles.icon}>{icon}</RN.Text>
+            </RN.View>
+            <RN.View>
+                <RN.Text style={styles.itemTitle}>{title}</RN.Text>
+                {subtitle && <RN.Text style={styles.itemSubtitle}>{subtitle}</RN.Text>}
+            </RN.View>
+        </RN.View>
+        <RN.Text style={styles.chevron}>›</RN.Text>
+    </RN.TouchableOpacity>
+);
+
+// Modal Liste Bileşeni
+const SelectionModal = ({
+    visible,
+    onClose,
+    data,
+    onSelect,
+    title,
+    keyExtractor,
+    labelExtractor
+}: {
+    visible: boolean;
+    onClose: () => void;
+    data: any[];
+    onSelect: (item: any) => void;
+    title: string;
+    keyExtractor: (item: any) => string;
+    labelExtractor: (item: any) => string;
+}) => (
+    <RN.Modal
+        visible={visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={onClose}
+    >
+        <RN.TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={onClose}
+        >
+            <BlurView intensity={20} tint="dark" style={RN.StyleSheet.absoluteFill} />
+            <RN.View style={styles.modalContent}>
+                <RN.View style={styles.modalHandle} />
+                <RN.View style={styles.modalHeader}>
+                    <RN.Text style={styles.modalTitle}>{title}</RN.Text>
+                    <RN.TouchableOpacity onPress={onClose}>
+                        <RN.Text style={styles.modalClose}>✕</RN.Text>
+                    </RN.TouchableOpacity>
+                </RN.View>
+                <RN.FlatList
+                    data={data}
+                    keyExtractor={keyExtractor}
+                    renderItem={({ item }: { item: any }) => (
+                        <RN.TouchableOpacity
+                            style={styles.modalItem}
+                            onPress={() => onSelect(item)}
+                        >
+                            <RN.Text style={styles.modalItemText}>{labelExtractor(item)}</RN.Text>
+                        </RN.TouchableOpacity>
+                    )}
+                    style={styles.modalList}
+                />
+            </RN.View>
+        </RN.TouchableOpacity>
+    </RN.Modal>
+);
+
 const SettingsScreen: React.FC = () => {
+    const { location: currentLocation, setLocation } = useApp();
     const [userName, setUserName] = useState('');
     const [isEditingName, setIsEditingName] = useState(false);
     const [iftarNotification, setIftarNotification] = useState(true);
     const [sahurNotification, setSahurNotification] = useState(true);
 
-    // Mevcut konum
-    const [currentLocation, setCurrentLocation] = useState<SelectedLocation | null>(null);
+
 
     // Firebase verileri
     const [cities, setCities] = useState<CityItem[]>([]);
@@ -57,9 +130,7 @@ const SettingsScreen: React.FC = () => {
                 const name = await getUserName();
                 if (name) setUserName(name);
 
-                // Mevcut konumu yükle
-                const location = await getSelectedLocation();
-                setCurrentLocation(location);
+
 
                 // Bildirim ayarlarını yükle
                 const iftar = await getIftarNotification();
@@ -72,8 +143,8 @@ const SettingsScreen: React.FC = () => {
                 setCities(fetchedCities);
 
                 // Eğer şehir seçiliyse ilçeleri de yükle
-                if (location?.cityPlateCode) {
-                    const fetchedDistricts = await getDistrictsForCity(location.cityPlateCode);
+                if (currentLocation?.cityPlateCode) {
+                    const fetchedDistricts = await getDistrictsForCity(currentLocation.cityPlateCode);
                     setDistricts(fetchedDistricts);
                 }
             } catch (error) {
@@ -105,7 +176,7 @@ const SettingsScreen: React.FC = () => {
             districtKey: '',
             districtName: '',
         };
-        setCurrentLocation(newLocation);
+        await setLocation(newLocation);
 
         // İlçe seçimi modalını aç
         setDistrictModalVisible(true);
@@ -121,8 +192,7 @@ const SettingsScreen: React.FC = () => {
                 districtKey: district.key,
                 districtName: district.name,
             };
-            setCurrentLocation(newLocation);
-            await saveSelectedLocation(newLocation);
+            await setLocation(newLocation);
         }
     };
 
@@ -137,76 +207,7 @@ const SettingsScreen: React.FC = () => {
         await saveSahurNotification(value);
     };
 
-    const SettingItem = ({ icon, title, subtitle, onPress, isLast }: any) => (
-        <RN.TouchableOpacity style={[styles.item, isLast && { borderBottomWidth: 0 }]} onPress={onPress}>
-            <RN.View style={styles.itemLeft}>
-                <RN.View style={styles.iconContainer}>
-                    <RN.Text style={styles.icon}>{icon}</RN.Text>
-                </RN.View>
-                <RN.View>
-                    <RN.Text style={styles.itemTitle}>{title}</RN.Text>
-                    {subtitle && <RN.Text style={styles.itemSubtitle}>{subtitle}</RN.Text>}
-                </RN.View>
-            </RN.View>
-            <RN.Text style={styles.chevron}>›</RN.Text>
-        </RN.TouchableOpacity>
-    );
 
-    // Modal Liste Bileşeni
-    const SelectionModal = ({
-        visible,
-        onClose,
-        data,
-        onSelect,
-        title,
-        keyExtractor,
-        labelExtractor
-    }: {
-        visible: boolean;
-        onClose: () => void;
-        data: any[];
-        onSelect: (item: any) => void;
-        title: string;
-        keyExtractor: (item: any) => string;
-        labelExtractor: (item: any) => string;
-    }) => (
-        <RN.Modal
-            visible={visible}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={onClose}
-        >
-            <RN.TouchableOpacity
-                style={styles.modalOverlay}
-                activeOpacity={1}
-                onPress={onClose}
-            >
-                <BlurView intensity={20} tint="dark" style={RN.StyleSheet.absoluteFill} />
-                <RN.View style={styles.modalContent}>
-                    <RN.View style={styles.modalHandle} />
-                    <RN.View style={styles.modalHeader}>
-                        <RN.Text style={styles.modalTitle}>{title}</RN.Text>
-                        <RN.TouchableOpacity onPress={onClose}>
-                            <RN.Text style={styles.modalClose}>✕</RN.Text>
-                        </RN.TouchableOpacity>
-                    </RN.View>
-                    <RN.FlatList
-                        data={data}
-                        keyExtractor={keyExtractor}
-                        renderItem={({ item }: { item: any }) => (
-                            <RN.TouchableOpacity
-                                style={styles.modalItem}
-                                onPress={() => onSelect(item)}
-                            >
-                                <RN.Text style={styles.modalItemText}>{labelExtractor(item)}</RN.Text>
-                            </RN.TouchableOpacity>
-                        )}
-                        style={styles.modalList}
-                    />
-                </RN.View>
-            </RN.TouchableOpacity>
-        </RN.Modal>
-    );
 
     if (loading) {
         return (

@@ -7,6 +7,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { MainTabParamList } from '../navigation/MainTabNavigator';
 import { Colors } from '../styles/theme';
+import { useApp } from '../context/AppContext';
+import { getTodayPrayerTimes } from '../services/prayerTimesService';
+import { DayData } from '../types';
 
 type HomeScreenRouteProp = RouteProp<MainTabParamList, 'Home'>;
 
@@ -16,18 +19,227 @@ interface HomeScreenProps {
 
 const { width } = RN.Dimensions.get('window');
 
-const HomeScreen = ({ route }: HomeScreenProps) => {
-    const city = route.params?.city || 'İstanbul';
-    const district = route.params?.district || 'Kadıköy';
+// Reusable Circular Timer Component
+const TimerCircle = ({
+    size,
+    label,
+    time,
+    colors,
+    subLabel,
+    small = false,
+    onPress
+}: {
+    size: number;
+    label: string;
+    time: string;
+    colors: string[];
+    subLabel: string;
+    small?: boolean;
+    onPress?: () => void;
+}) => {
+    const strokeWidth = small ? 4 : 8;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    // For now, full circle. Progress logic can come later.
+    const progress = 1;
+    const strokeDashoffset = circumference - (progress * circumference);
 
-    const [timeLeft, setTimeLeft] = useState('05:28');
+    return (
+        <RN.TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onPress}
+            disabled={!onPress}
+            style={[styles.timerCircleContainer, { width: size }]}
+        >
+            <RN.View style={[styles.outerCircle, { width: size, height: size, borderRadius: size / 2, borderWidth: strokeWidth }]}>
+                {/* Visual Circle */}
+                <Svg height={size} width={size} style={styles.progressRing}>
+                    <Defs>
+                        <SvgGradient id={`grad-${label}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <Stop offset="0%" stopColor={colors[0]} />
+                            <Stop offset="100%" stopColor={colors[1]} />
+                        </SvgGradient>
+                    </Defs>
+                    <Circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        stroke={`url(#grad-${label})`}
+                        strokeWidth={strokeWidth}
+                        fill="transparent"
+                        strokeDasharray={`${circumference} ${circumference}`}
+                        strokeDashoffset={0} // Full circle for now
+                        strokeLinecap="round"
+                    />
+                </Svg>
+
+                <RN.View style={styles.innerCircle}>
+                    <RN.Text style={[styles.timerLabel, small && styles.timerLabelSmall]}>{label}</RN.Text>
+                    <RN.Text style={[styles.timerTime, small && styles.timerTimeSmall, { color: colors[1] }]}>{time}</RN.Text>
+                    <RN.Text style={[styles.remainingLabel, small && styles.remainingLabelSmall]}>{subLabel}</RN.Text>
+                </RN.View>
+            </RN.View>
+        </RN.TouchableOpacity>
+    );
+};
+
+const HomeScreen = ({ route }: HomeScreenProps) => {
+    const { location } = useApp();
+    const [prayerTimes, setPrayerTimes] = useState<DayData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    // Timers
+    const [nextPrayerTimeLeft, setNextPrayerTimeLeft] = useState('--:--');
+    const [nextPrayerName, setNextPrayerName] = useState('Yükleniyor...');
+    const [activePrayerName, setActivePrayerName] = useState('Yükleniyor...'); // For grid highlight
+    const [iftarTimeLeft, setIftarTimeLeft] = useState('--:--');
+    const [sahurTimeLeft, setSahurTimeLeft] = useState('--:--');
+
+    // Timer Order State: [Left, Center, Right]
+    const [timerPositions, setTimerPositions] = useState<('next' | 'iftar' | 'sahur')[]>(['next', 'iftar', 'sahur']);
+
+    const handleTimerPress = (index: number) => {
+        if (index === 1) return; // Ortadaki zaten odaklanmış durumda
+        const newPositions = [...timerPositions];
+        const temp = newPositions[1];
+        newPositions[1] = newPositions[index];
+        newPositions[index] = temp;
+        setTimerPositions(newPositions);
+    };
+
     const [isMealModalVisible, setIsMealModalVisible] = useState(false);
     const [isHadithModalVisible, setIsHadithModalVisible] = useState(false);
 
+    // Namaz vakitlerini çek
+    useEffect(() => {
+        async function fetchTimes() {
+            if (location) {
+                try {
+                    setLoading(true);
+                    const data = await getTodayPrayerTimes(location.cityPlateCode, location.districtKey);
+                    setPrayerTimes(data);
+                } catch (error) {
+                    console.error('Namaz vakitleri çekilemedi:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        }
+        fetchTimes();
+    }, [location]);
+
+    // Timer Logic
+    useEffect(() => {
+        if (!prayerTimes) return;
+
+        const timer = setInterval(() => {
+            const now = new Date();
+            const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+
+            const parseTime = (timeStr: string) => {
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            const times = {
+                imsak: parseTime(prayerTimes.prayerTimes.imsak),
+                gunes: parseTime(prayerTimes.prayerTimes.gunes),
+                ogle: parseTime(prayerTimes.prayerTimes.ogle),
+                ikindi: parseTime(prayerTimes.prayerTimes.ikindi),
+                aksam: parseTime(prayerTimes.prayerTimes.aksam), // Iftar
+                yatsi: parseTime(prayerTimes.prayerTimes.yatsi),
+            };
+
+            const formatDuration = (diffMinutes: number) => {
+                let diff = diffMinutes;
+                if (diff < 0) diff += 24 * 60; // Handle next day wrap
+                const h = Math.floor(diff / 60);
+                const m = diff % 60;
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            };
+
+
+            // 1. Next Prayer (Sol) - Skip if it's Iftar or Sahur
+            let nextP = '';
+            let nextDiff = 0;
+
+            if (currentTimeMinutes < times.imsak) {
+                // Sahur (Imsak) sağda var, bir sonrakini (Güneş) göster
+                nextP = 'Güneş';
+                nextDiff = times.gunes - currentTimeMinutes;
+            } else if (currentTimeMinutes < times.gunes) {
+                nextP = 'Güneş';
+                nextDiff = times.gunes - currentTimeMinutes;
+            } else if (currentTimeMinutes < times.ogle) {
+                nextP = 'Öğle';
+                nextDiff = times.ogle - currentTimeMinutes;
+            } else if (currentTimeMinutes < times.ikindi) {
+                nextP = 'İkindi';
+                nextDiff = times.ikindi - currentTimeMinutes;
+            } else if (currentTimeMinutes < times.aksam) {
+                // İftar (Akşam) ortada var, bir sonrakini (Yatsı) göster
+                nextP = 'Yatsı';
+                nextDiff = times.yatsi - currentTimeMinutes;
+            } else if (currentTimeMinutes < times.yatsi) {
+                nextP = 'Yatsı';
+                nextDiff = times.yatsi - currentTimeMinutes;
+            } else {
+                // Gece yarısından sonra sıradaki İmsak (Sahur) sağda var, Güneş'i göster
+                nextP = 'Güneş';
+                nextDiff = (24 * 60 + times.gunes) - currentTimeMinutes;
+            }
+            setNextPrayerName(nextP);
+            setNextPrayerTimeLeft(formatDuration(nextDiff));
+
+            // Grid Highlight Logic (Always immediate next)
+            let realNext = '';
+            if (currentTimeMinutes < times.imsak) realNext = 'İmsak';
+            else if (currentTimeMinutes < times.gunes) realNext = 'Güneş';
+            else if (currentTimeMinutes < times.ogle) realNext = 'Öğle';
+            else if (currentTimeMinutes < times.ikindi) realNext = 'İkindi';
+            else if (currentTimeMinutes < times.aksam) realNext = 'Akşam';
+            else if (currentTimeMinutes < times.yatsi) realNext = 'Yatsı';
+            else realNext = 'İmsak';
+            setActivePrayerName(realNext);
+
+
+            // 2. Iftar (Orta - Sabit Akşam)
+            let iftarDiff = times.aksam - currentTimeMinutes;
+            if (currentTimeMinutes >= times.aksam) {
+                // Bugun iftar gecti, yarin aksam (tahmini ayni saat)
+                iftarDiff += 24 * 60;
+            }
+            setIftarTimeLeft(formatDuration(iftarDiff));
+
+
+            // 3. Sahur (Sag - Sabit Imsak)
+            let sahurDiff = times.imsak - currentTimeMinutes;
+            if (currentTimeMinutes >= times.imsak) {
+                // Bugun sahur gecti, yarin imsak
+                sahurDiff += 24 * 60;
+            }
+            setSahurTimeLeft(formatDuration(sahurDiff));
+
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [prayerTimes]);
+
+    const formattedDate = new Date().toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        weekday: 'long'
+    });
+
+    const hijriDate = prayerTimes?.hijriDate || '15 Ramazan, 1445';
+
+    // Sizes
+    const centerSize = width * 0.45; // Increased center slightly for balance
+    const sideSize = width * 0.16; // Reduced by another 10% (0.18 -> 0.16)
+
     return (
         <RN.View style={styles.container}>
-            {/* Premium Dark Gradient Background */}
-            {/* Premium Dark Emerald Gradient Background */}
             <LinearGradient
                 colors={['#064E3B', '#022C22', '#000000']}
                 style={RN.StyleSheet.absoluteFill}
@@ -35,7 +247,6 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                 end={{ x: 1, y: 1 }}
             />
 
-            {/* Decorative Top Image */}
             <RN.Image
                 source={require('../../assets/home-bg-ui.png')}
                 style={styles.decorativeImage}
@@ -45,9 +256,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <RN.ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-
-
-                    {/* 2. Date Navigation Card */}
+                    {/* Date Navigation Card */}
                     <RN.View style={styles.dateCard}>
                         <LinearGradient
                             colors={['rgba(16, 185, 129, 0.12)', 'rgba(5, 150, 105, 0.12)']}
@@ -60,8 +269,8 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                         </RN.TouchableOpacity>
 
                         <RN.View style={styles.dateInfo}>
-                            <RN.Text style={styles.hijriDate}>15 Ramazan, 1445</RN.Text>
-                            <RN.Text style={styles.gregorianDate}>16 Mart 2025</RN.Text>
+                            <RN.Text style={styles.hijriDate}>{hijriDate}</RN.Text>
+                            <RN.Text style={styles.gregorianDate}>{formattedDate}</RN.Text>
                         </RN.View>
 
                         <RN.TouchableOpacity style={styles.arrowBtn}>
@@ -69,56 +278,57 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                         </RN.TouchableOpacity>
                     </RN.View>
 
-                    {/* 3. Central Circular Timer Section */}
+                    {/* 3-Timer Section */}
                     <RN.View style={styles.timerSection}>
-                        <RN.View style={styles.outerCircle}>
-                            {/* Inner Circle Content */}
-                            <RN.View style={styles.innerCircle}>
-                                <RN.Text style={styles.timerLabel}>İftar Vakti</RN.Text>
-                                <Svg height="65" width="160">
-                                    <Defs>
-                                        <SvgGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                            <Stop offset="0%" stopColor="#34D399" />
-                                            <Stop offset="100%" stopColor="#10B981" />
-                                        </SvgGradient>
-                                    </Defs>
-                                    <SvgText
-                                        fill="url(#textGrad)"
-                                        fontSize="50"
-                                        fontWeight="bold"
-                                        x="80"
-                                        y="50"
-                                        textAnchor="middle"
-                                    >
-                                        {timeLeft}
-                                    </SvgText>
-                                </Svg>
-                                <RN.Text style={styles.remainingLabel}>Kalan Süre</RN.Text>
-                            </RN.View>
+                        {timerPositions.map((type, index) => {
+                            const isCenter = index === 1;
+                            const size = isCenter ? centerSize : sideSize;
+                            const isSmall = !isCenter;
 
-                            {/* Visual representation of the progress ring with gradient */}
-                            <Svg height={width * 0.55} width={width * 0.55} style={styles.progressRing}>
-                                <Defs>
-                                    <SvgGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <Stop offset="0%" stopColor="#34D399" />
-                                        <Stop offset="100%" stopColor="#10B981" />
-                                    </SvgGradient>
-                                </Defs>
-                                <Circle
-                                    cx={(width * 0.55) / 2}
-                                    cy={(width * 0.55) / 2}
-                                    r={(width * 0.55 - 8) / 2}
-                                    stroke="url(#grad)"
-                                    strokeWidth="8"
-                                    fill="transparent"
-                                    strokeDasharray={`${(Math.PI * (width * 0.55 - 8)) * 0.7} ${Math.PI * (width * 0.55 - 8)}`}
-                                    strokeLinecap="round"
-                                />
-                            </Svg>
-                        </RN.View>
+                            if (type === 'next') {
+                                return (
+                                    <TimerCircle
+                                        key="next"
+                                        size={size}
+                                        label={nextPrayerName}
+                                        time={nextPrayerTimeLeft}
+                                        subLabel="Kaldı"
+                                        colors={['#10B981', '#059669']}
+                                        small={isSmall}
+                                        onPress={() => handleTimerPress(index)}
+                                    />
+                                );
+                            } else if (type === 'iftar') {
+                                return (
+                                    <TimerCircle
+                                        key="iftar"
+                                        size={size}
+                                        label="İftar'a"
+                                        time={iftarTimeLeft}
+                                        subLabel="Kaldı"
+                                        colors={['#34D399', '#10B981']}
+                                        small={isSmall}
+                                        onPress={() => handleTimerPress(index)}
+                                    />
+                                );
+                            } else {
+                                return (
+                                    <TimerCircle
+                                        key="sahur"
+                                        size={size}
+                                        label="Sahur'a"
+                                        time={sahurTimeLeft}
+                                        subLabel="Kaldı"
+                                        colors={['#10B981', '#059669']}
+                                        small={isSmall}
+                                        onPress={() => handleTimerPress(index)}
+                                    />
+                                );
+                            }
+                        })}
                     </RN.View>
 
-                    {/* 4. Namaz Vakitleri Grid Section */}
+                    {/* Namaz Vakitleri Grid Section */}
                     <RN.View style={styles.vakitlerContainer}>
                         <LinearGradient
                             colors={['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']}
@@ -127,33 +337,37 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                             end={{ x: 1, y: 1 }}
                         />
                         <RN.View style={styles.vakitHeader}>
-                            <RN.Text style={styles.vakitHeaderText}>🌙✨ {district} Namaz Vakitleri</RN.Text>
+                            <RN.Text style={styles.vakitHeaderText}>🌙✨ {location ? location.districtName : 'Şehir Seçiniz'} Namaz Vakitleri</RN.Text>
                         </RN.View>
 
-                        <RN.View style={styles.vakitGrid}>
-                            {[
-                                { label: 'İmsak', time: '04:15', active: true },
-                                { label: 'Güneş', time: '05:48', active: false },
-                                { label: 'Öğle', time: '13:12', active: false },
-                                { label: 'İkindi', time: '16:55', active: false },
-                                { label: 'Akşam', time: '19:42', active: false },
-                                { label: 'Yatsı', time: '21:05', active: false },
-                            ].map((vakit, index) => (
-                                <RN.View key={index} style={[styles.vakitCard, vakit.active && styles.vakitCardActive]}>
-                                    <LinearGradient
-                                        colors={vakit.active ? ['rgba(52, 211, 153, 0.25)', 'rgba(16, 185, 129, 0.15)'] : ['rgba(255, 255, 255, 0.03)', 'rgba(255, 255, 255, 0.01)']}
-                                        style={RN.StyleSheet.absoluteFill}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                    />
-                                    <RN.Text style={[styles.vakitLabel, vakit.active && styles.vakitLabelActive]}>{vakit.label}</RN.Text>
-                                    <RN.Text style={[styles.vakitTime, vakit.active && styles.vakitTimeActive]}>{vakit.time}</RN.Text>
-                                </RN.View>
-                            ))}
-                        </RN.View>
+                        {prayerTimes ? (
+                            <RN.View style={styles.vakitGrid}>
+                                {[
+                                    { label: 'İmsak', time: prayerTimes.prayerTimes.imsak, active: activePrayerName === 'İmsak' },
+                                    { label: 'Güneş', time: prayerTimes.prayerTimes.gunes, active: activePrayerName === 'Güneş' },
+                                    { label: 'Öğle', time: prayerTimes.prayerTimes.ogle, active: activePrayerName === 'Öğle' },
+                                    { label: 'İkindi', time: prayerTimes.prayerTimes.ikindi, active: activePrayerName === 'İkindi' },
+                                    { label: 'Akşam', time: prayerTimes.prayerTimes.aksam, active: activePrayerName === 'Akşam' },
+                                    { label: 'Yatsı', time: prayerTimes.prayerTimes.yatsi, active: activePrayerName === 'Yatsı' },
+                                ].map((vakit, index) => (
+                                    <RN.View key={index} style={[styles.vakitCard, vakit.active && styles.vakitCardActive]}>
+                                        <LinearGradient
+                                            colors={vakit.active ? ['#059669', '#047857'] : ['rgba(255, 255, 255, 0.03)', 'rgba(255, 255, 255, 0.01)']}
+                                            style={RN.StyleSheet.absoluteFill}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                        />
+                                        <RN.Text style={[styles.vakitLabel, vakit.active && styles.vakitLabelActive]}>{vakit.label}</RN.Text>
+                                        <RN.Text style={[styles.vakitTime, vakit.active && styles.vakitTimeActive]}>{vakit.time}</RN.Text>
+                                    </RN.View>
+                                ))}
+                            </RN.View>
+                        ) : (
+                            <RN.Text style={{ color: 'white', textAlign: 'center', padding: 20 }}>Yükleniyor...</RN.Text>
+                        )}
                     </RN.View>
 
-                    {/* 6. Quick Action Row (Meal & Hadith) */}
+                    {/* Quick Action Row */}
                     <RN.View style={styles.actionRow}>
                         <RN.TouchableOpacity
                             style={styles.actionButton}
@@ -264,48 +478,10 @@ const styles = RN.StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 24,
-        paddingBottom: 120, // Increased to clear the custom tab bar
+        paddingBottom: 120,
         paddingTop: 10,
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 25,
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    headerLogo: {
-        width: 32,
-        height: 32,
-        marginRight: 12,
-    },
-    locationContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    locationText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
-        marginRight: 6,
-    },
-    dropdownIcon: {
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: 14,
-    },
-    gridBtn: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    gridBtnText: {
-        color: '#FFFFFF',
-        fontSize: 24,
-    },
+    // ... (Keep existing styles for header, logo, location etc. if needed, or remove if unused)
     dateCard: {
         height: 64,
         borderRadius: 16,
@@ -317,6 +493,7 @@ const styles = RN.StyleSheet.create({
         backgroundColor: 'rgba(6, 78, 59, 0.3)',
         borderWidth: 1,
         borderColor: 'rgba(16, 185, 129, 0.2)',
+        marginBottom: 20, // Add margin bottom
     },
     arrowBtn: {
         width: 36,
@@ -343,36 +520,65 @@ const styles = RN.StyleSheet.create({
         fontSize: 11,
     },
     timerSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between', // Distribute evenly
+        alignItems: 'center', // Align centers vertically
+        marginBottom: 25,
+        paddingHorizontal: 10, // Add some padding to avoid edge touch
+    },
+    timerCircleContainer: {
         alignItems: 'center',
-        marginVertical: 25,
+        justifyContent: 'center',
     },
     outerCircle: {
-        width: width * 0.55,
-        height: width * 0.55,
-        borderRadius: (width * 0.55) / 2,
-        borderWidth: 8,
         borderColor: 'rgba(255, 255, 255, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
+        backgroundColor: 'rgba(0,0,0,0.2)', // Slight background
     },
     innerCircle: {
         alignItems: 'center',
+        justifyContent: 'center',
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
     },
     progressRing: {
         position: 'absolute',
         transform: [{ rotate: '-90deg' }],
     },
     timerLabel: {
-        color: '#FFFFFF',
-        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 12, // Adjusted for main timer
         fontWeight: '500',
-        marginBottom: 4,
+        marginBottom: 2,
+        textAlign: 'center',
+    },
+    timerLabelSmall: {
+        fontSize: 9, // Smaller for side timers
+        marginBottom: 0,
+    },
+    timerTime: {
+        fontSize: 28, // Adjusted for main timer
+        fontWeight: 'bold',
+        textAlign: 'center',
+        letterSpacing: -1,
+    },
+    timerTimeSmall: {
+        fontSize: 14, // Smaller for side timers
+        fontWeight: 'bold',
+        letterSpacing: 0,
     },
     remainingLabel: {
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: 12,
-        marginTop: 6,
+        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 10,
+        marginTop: 2,
+        textAlign: 'center',
+    },
+    remainingLabelSmall: {
+        fontSize: 8,
+        marginTop: 0,
     },
     vakitlerContainer: {
         marginTop: 10,
@@ -413,8 +619,16 @@ const styles = RN.StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.05)',
     },
     vakitCardActive: {
-        borderColor: 'rgba(16, 185, 129, 0.5)',
-        borderWidth: 1.5,
+        borderColor: '#34D399',
+        borderWidth: 2,
+        shadowColor: "#34D399",
+        shadowOffset: {
+            width: 0,
+            height: 0,
+        },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 5,
     },
     vakitLabel: {
         color: 'rgba(255, 255, 255, 0.4)',
@@ -422,7 +636,7 @@ const styles = RN.StyleSheet.create({
         marginBottom: 4,
     },
     vakitLabelActive: {
-        color: '#34D399',
+        color: '#FFFFFF',
         fontWeight: 'bold',
     },
     vakitTime: {
@@ -433,18 +647,6 @@ const styles = RN.StyleSheet.create({
     vakitTimeActive: {
         color: '#FFFFFF',
         fontSize: 18,
-    },
-    statusLabel: {
-        color: 'rgba(255, 255, 255, 0.3)',
-        fontSize: 11,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-        marginBottom: 4,
-    },
-    statusTime: {
-        color: '#FFFFFF',
-        fontSize: 17,
-        fontWeight: '600',
     },
     actionRow: {
         flexDirection: 'row',
@@ -546,7 +748,7 @@ const styles = RN.StyleSheet.create({
         left: 0,
         right: 0,
         width: '100%',
-        height: 350, // Adjust height as needed
+        height: 350,
         opacity: 0.05,
     },
 });

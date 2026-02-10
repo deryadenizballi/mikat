@@ -21,6 +21,8 @@ export async function getPrayerTimesForDate(
     districtKey: string,
     date: string
 ): Promise<DayData | null> {
+    if (!plateCode || !districtKey) return null;
+
     try {
         const cityDocRef = doc(db, 'cities', plateCode);
         const cityDocSnap = await getDoc(cityDocRef);
@@ -88,6 +90,8 @@ export async function getPrayerTimesForDateRange(
     startDate: string,
     endDate: string
 ): Promise<DayData[]> {
+    if (!plateCode || !districtKey) return [];
+
     try {
         const results: DayData[] = [];
 

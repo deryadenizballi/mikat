@@ -13,6 +13,7 @@ export interface DayData {
     date: string;
     prayerTimes: PrayerTimes;
     source?: string;
+    hijriDate?: string;
 }
 
 export interface District {

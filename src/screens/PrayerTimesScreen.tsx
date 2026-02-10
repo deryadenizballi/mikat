@@ -8,12 +8,13 @@ import { Colors } from '../styles/theme';
 // Firebase Services
 import { getMonthlyPrayerTimes } from '../services/prayerTimesService';
 import { getSelectedLocation } from '../services/storageService';
-import { DayData, SelectedLocation } from '../types';
+import { DayData } from '../types';
+import { useApp } from '../context/AppContext';
 
 const PrayerTimesScreen: React.FC = () => {
+    const { location } = useApp();
     const [prayerData, setPrayerData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [location, setLocation] = useState<SelectedLocation | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const days = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
@@ -25,11 +26,10 @@ const PrayerTimesScreen: React.FC = () => {
                 setLoading(true);
                 setError(null);
 
-                // Mevcut konumu al
-                const savedLocation = await getSelectedLocation();
-                setLocation(savedLocation);
+                setLoading(true);
+                setError(null);
 
-                if (!savedLocation?.cityPlateCode || !savedLocation?.districtKey) {
+                if (!location?.cityPlateCode || !location?.districtKey) {
                     setError('Lütfen önce şehir ve ilçe seçin.');
                     setLoading(false);
                     return;
@@ -41,8 +41,8 @@ const PrayerTimesScreen: React.FC = () => {
                 const month = now.getMonth() + 1; // 1-indexed
 
                 const monthlyData = await getMonthlyPrayerTimes(
-                    savedLocation.cityPlateCode,
-                    savedLocation.districtKey,
+                    location.cityPlateCode,
+                    location.districtKey,
                     year,
                     month
                 );
@@ -75,7 +75,7 @@ const PrayerTimesScreen: React.FC = () => {
         }
 
         fetchData();
-    }, []);
+    }, [location]);
 
     const renderHeader = () => (
         <RN.View style={styles.tableHeader}>
