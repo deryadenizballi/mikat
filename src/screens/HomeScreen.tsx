@@ -31,6 +31,7 @@ const TimerCircle = ({
     time,
     colors,
     subLabel,
+    progress = 1,
     small = false,
     onPress
 }: {
@@ -39,14 +40,13 @@ const TimerCircle = ({
     time: string;
     colors: string[];
     subLabel: string;
+    progress?: number;
     small?: boolean;
     onPress?: () => void;
 }) => {
     const strokeWidth = small ? 4 : 8;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
-    // For now, full circle. Progress logic can come later.
-    const progress = 1;
     const strokeDashoffset = circumference - (progress * circumference);
 
     return (
@@ -73,7 +73,7 @@ const TimerCircle = ({
                         strokeWidth={strokeWidth}
                         fill="transparent"
                         strokeDasharray={`${circumference} ${circumference}`}
-                        strokeDashoffset={0} // Full circle for now
+                        strokeDashoffset={strokeDashoffset}
                         strokeLinecap="round"
                     />
                 </Svg>
@@ -94,11 +94,17 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
     const [loading, setLoading] = useState(true);
 
     // Timers
-    const [nextPrayerTimeLeft, setNextPrayerTimeLeft] = useState('--:--');
+    const [nextPrayerTimeLeft, setNextPrayerTimeLeft] = useState('--:--:--');
     const [nextPrayerName, setNextPrayerName] = useState('Yükleniyor...');
+    const [nextPrayerProgress, setNextPrayerProgress] = useState(1);
+
     const [activePrayerName, setActivePrayerName] = useState('Yükleniyor...'); // For grid highlight
-    const [iftarTimeLeft, setIftarTimeLeft] = useState('--:--');
-    const [sahurTimeLeft, setSahurTimeLeft] = useState('--:--');
+
+    const [iftarTimeLeft, setIftarTimeLeft] = useState('--:--:--');
+    const [iftarProgress, setIftarProgress] = useState(1);
+
+    const [sahurTimeLeft, setSahurTimeLeft] = useState('--:--:--');
+    const [sahurProgress, setSahurProgress] = useState(1);
 
     // Timer Order State: [Left, Center, Right]
     const [timerPositions, setTimerPositions] = useState<('next' | 'iftar' | 'sahur')[]>(['next', 'iftar', 'sahur']);
@@ -143,91 +149,107 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
 
         const timer = setInterval(() => {
             const now = new Date();
-            const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+            const currentTimeSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
 
-            const parseTime = (timeStr: string) => {
+            const parseToSeconds = (timeStr: string) => {
                 const [h, m] = timeStr.split(':').map(Number);
-                return h * 60 + m;
+                return h * 3600 + m * 60;
             };
 
             const times = {
-                imsak: parseTime(prayerTimes.prayerTimes.imsak),
-                gunes: parseTime(prayerTimes.prayerTimes.gunes),
-                ogle: parseTime(prayerTimes.prayerTimes.ogle),
-                ikindi: parseTime(prayerTimes.prayerTimes.ikindi),
-                aksam: parseTime(prayerTimes.prayerTimes.aksam), // Iftar
-                yatsi: parseTime(prayerTimes.prayerTimes.yatsi),
+                imsak: parseToSeconds(prayerTimes.prayerTimes.imsak),
+                gunes: parseToSeconds(prayerTimes.prayerTimes.gunes),
+                ogle: parseToSeconds(prayerTimes.prayerTimes.ogle),
+                ikindi: parseToSeconds(prayerTimes.prayerTimes.ikindi),
+                aksam: parseToSeconds(prayerTimes.prayerTimes.aksam), // Iftar
+                yatsi: parseToSeconds(prayerTimes.prayerTimes.yatsi),
             };
 
-            const formatDuration = (diffMinutes: number) => {
-                let diff = diffMinutes;
-                if (diff < 0) diff += 24 * 60; // Handle next day wrap
-                const h = Math.floor(diff / 60);
-                const m = diff % 60;
-                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            const formatDuration = (diffSeconds: number) => {
+                let diff = diffSeconds;
+                if (diff < 0) diff += 24 * 3600;
+                const h = Math.floor(diff / 3600);
+                const m = Math.floor((diff % 3600) / 60);
+                const s = diff % 60;
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             };
 
+            const calculateProgress = (diffSeconds: number, totalSeconds: number) => {
+                if (totalSeconds <= 0) return 0;
+                // Süre azaldıkça dolmasını istiyoruz: 1 - (kalan / toplam)
+                const progress = 1 - (diffSeconds / totalSeconds);
+                return Math.max(0, Math.min(1, progress));
+            };
 
-            // 1. Next Prayer (Sol) - Skip if it's Iftar or Sahur
+            // 1. Next Prayer (Sol)
             let nextP = '';
             let nextDiff = 0;
+            let nextTotal = 0;
 
-            if (currentTimeMinutes < times.imsak) {
-                // Sahur (Imsak) sağda var, bir sonrakini (Güneş) göster
+            if (currentTimeSeconds < times.imsak) {
+                // Sahur (Imsak) sağda var, Güneş'e odaklan. Pencere dünkü Yatsı'dan başlar.
                 nextP = 'Güneş';
-                nextDiff = times.gunes - currentTimeMinutes;
-            } else if (currentTimeMinutes < times.gunes) {
+                nextDiff = times.gunes - currentTimeSeconds;
+                nextTotal = times.gunes - (times.yatsi - 24 * 3600);
+            } else if (currentTimeSeconds < times.gunes) {
                 nextP = 'Güneş';
-                nextDiff = times.gunes - currentTimeMinutes;
-            } else if (currentTimeMinutes < times.ogle) {
+                nextDiff = times.gunes - currentTimeSeconds;
+                nextTotal = times.gunes - times.imsak;
+            } else if (currentTimeSeconds < times.ogle) {
                 nextP = 'Öğle';
-                nextDiff = times.ogle - currentTimeMinutes;
-            } else if (currentTimeMinutes < times.ikindi) {
+                nextDiff = times.ogle - currentTimeSeconds;
+                nextTotal = times.ogle - times.gunes;
+            } else if (currentTimeSeconds < times.ikindi) {
                 nextP = 'İkindi';
-                nextDiff = times.ikindi - currentTimeMinutes;
-            } else if (currentTimeMinutes < times.aksam) {
-                // İftar (Akşam) ortada var, bir sonrakini (Yatsı) göster
+                nextDiff = times.ikindi - currentTimeSeconds;
+                nextTotal = times.ikindi - times.ogle;
+            } else if (currentTimeSeconds < times.aksam) {
+                // İftar (Akşam) ortada var, Yatsı'ya odaklan. Pencere İkindi'den başlar.
                 nextP = 'Yatsı';
-                nextDiff = times.yatsi - currentTimeMinutes;
-            } else if (currentTimeMinutes < times.yatsi) {
+                nextDiff = times.yatsi - currentTimeSeconds;
+                nextTotal = times.yatsi - times.ikindi;
+            } else if (currentTimeSeconds < times.yatsi) {
                 nextP = 'Yatsı';
-                nextDiff = times.yatsi - currentTimeMinutes;
+                nextDiff = times.yatsi - currentTimeSeconds;
+                nextTotal = times.yatsi - times.aksam;
             } else {
-                // Gece yarısından sonra sıradaki İmsak (Sahur) sağda var, Güneş'i göster
+                // Yatsı geçti, Sahur sağda var, Güneş'e odaklan. Pencere bugünkü Yatsı'dan başlar.
                 nextP = 'Güneş';
-                nextDiff = (24 * 60 + times.gunes) - currentTimeMinutes;
+                nextDiff = (24 * 3600 + times.gunes) - currentTimeSeconds;
+                nextTotal = (24 * 3600 + times.gunes) - times.yatsi;
             }
             setNextPrayerName(nextP);
             setNextPrayerTimeLeft(formatDuration(nextDiff));
+            setNextPrayerProgress(calculateProgress(nextDiff, nextTotal));
 
-            // Grid Highlight Logic (Always immediate next)
+            // Grid Highlight Logic
             let realNext = '';
-            if (currentTimeMinutes < times.imsak) realNext = 'İmsak';
-            else if (currentTimeMinutes < times.gunes) realNext = 'Güneş';
-            else if (currentTimeMinutes < times.ogle) realNext = 'Öğle';
-            else if (currentTimeMinutes < times.ikindi) realNext = 'İkindi';
-            else if (currentTimeMinutes < times.aksam) realNext = 'Akşam';
-            else if (currentTimeMinutes < times.yatsi) realNext = 'Yatsı';
+            if (currentTimeSeconds < times.imsak) realNext = 'İmsak';
+            else if (currentTimeSeconds < times.gunes) realNext = 'Güneş';
+            else if (currentTimeSeconds < times.ogle) realNext = 'Öğle';
+            else if (currentTimeSeconds < times.ikindi) realNext = 'İkindi';
+            else if (currentTimeSeconds < times.aksam) realNext = 'Akşam';
+            else if (currentTimeSeconds < times.yatsi) realNext = 'Yatsı';
             else realNext = 'İmsak';
             setActivePrayerName(realNext);
 
-
-            // 2. Iftar (Orta - Sabit Akşam)
-            let iftarDiff = times.aksam - currentTimeMinutes;
-            if (currentTimeMinutes >= times.aksam) {
-                // Bugun iftar gecti, yarin aksam (tahmini ayni saat)
-                iftarDiff += 24 * 60;
+            // 2. Iftar (Orta)
+            let iftarDiff = times.aksam - currentTimeSeconds;
+            let iftarTotal = 24 * 3600; // 24 saatlik döngü
+            if (currentTimeSeconds >= times.aksam) {
+                iftarDiff += 24 * 3600;
             }
             setIftarTimeLeft(formatDuration(iftarDiff));
+            setIftarProgress(calculateProgress(iftarDiff, iftarTotal));
 
-
-            // 3. Sahur (Sag - Sabit Imsak)
-            let sahurDiff = times.imsak - currentTimeMinutes;
-            if (currentTimeMinutes >= times.imsak) {
-                // Bugun sahur gecti, yarin imsak
-                sahurDiff += 24 * 60;
+            // 3. Sahur (Sağ)
+            let sahurDiff = times.imsak - currentTimeSeconds;
+            let sahurTotal = 24 * 3600; // 24 saatlik döngü
+            if (currentTimeSeconds >= times.imsak) {
+                sahurDiff += 24 * 3600;
             }
             setSahurTimeLeft(formatDuration(sahurDiff));
+            setSahurProgress(calculateProgress(sahurDiff, sahurTotal));
 
         }, 1000);
 
@@ -303,6 +325,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                                         time={nextPrayerTimeLeft}
                                         subLabel="Kaldı"
                                         colors={['#10B981', '#059669']}
+                                        progress={nextPrayerProgress}
                                         small={isSmall}
                                         onPress={() => handleTimerPress(index)}
                                     />
@@ -316,6 +339,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                                         time={iftarTimeLeft}
                                         subLabel="Kaldı"
                                         colors={['#34D399', '#10B981']}
+                                        progress={iftarProgress}
                                         small={isSmall}
                                         onPress={() => handleTimerPress(index)}
                                     />
@@ -329,6 +353,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                                         time={sahurTimeLeft}
                                         subLabel="Kaldı"
                                         colors={['#10B981', '#059669']}
+                                        progress={sahurProgress}
                                         small={isSmall}
                                         onPress={() => handleTimerPress(index)}
                                     />
@@ -569,15 +594,15 @@ const styles = RN.StyleSheet.create({
         marginBottom: 0,
     },
     timerTime: {
-        fontSize: 28, // Adjusted for main timer
+        fontSize: 24, // Reduced from 28 to fit HH:MM:SS
         fontWeight: 'bold',
         textAlign: 'center',
-        letterSpacing: -1,
+        letterSpacing: -0.5,
     },
     timerTimeSmall: {
-        fontSize: 14, // Smaller for side timers
+        fontSize: 10, // Reduced from 14 to fit HH:MM:SS
         fontWeight: 'bold',
-        letterSpacing: 0,
+        letterSpacing: -0.2,
     },
     remainingLabel: {
         color: 'rgba(255, 255, 255, 0.5)',
