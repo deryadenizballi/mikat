@@ -14,9 +14,12 @@ import {
     getSahurNotification,
     saveIftarNotification,
     saveSahurNotification,
+    getAllPrayerNotification,
+    saveAllPrayerNotification,
     getUserName,
-    saveUserName
+    saveUserName,
 } from '../services/storageService';
+import { schedulePrayerNotifications } from '../services/notificationService';
 import { SelectedLocation } from '../types';
 
 interface CityItem {
@@ -103,9 +106,10 @@ const SelectionModal = ({
 );
 
 const SettingsScreen: React.FC = () => {
-    const { location: currentLocation, setLocation } = useApp();
+    const { location: currentLocation, setLocation, todayPrayerTimes } = useApp();
     const [userName, setUserName] = useState('');
     const [isEditingName, setIsEditingName] = useState(false);
+    const [allNotification, setAllNotification] = useState(true);
     const [iftarNotification, setIftarNotification] = useState(true);
     const [sahurNotification, setSahurNotification] = useState(true);
 
@@ -133,8 +137,11 @@ const SettingsScreen: React.FC = () => {
 
 
                 // Bildirim ayarlarını yükle
+                const all = await getAllPrayerNotification();
                 const iftar = await getIftarNotification();
                 const sahur = await getSahurNotification();
+
+                setAllNotification(all);
                 setIftarNotification(iftar);
                 setSahurNotification(sahur);
 
@@ -197,14 +204,67 @@ const SettingsScreen: React.FC = () => {
     };
 
     // Bildirim toggle
+    // Bildirim toggle
+    const handleAllNotificationToggle = async (value: boolean) => {
+        setAllNotification(value);
+        await saveAllPrayerNotification(value);
+
+        if (value) {
+            // Master açılınca altları da aç
+            setIftarNotification(true);
+            await saveIftarNotification(true);
+            setSahurNotification(true);
+            await saveSahurNotification(true);
+        }
+
+        // Bildirimleri anında güncelle
+        if (todayPrayerTimes && currentLocation) {
+            await schedulePrayerNotifications(
+                todayPrayerTimes,
+                currentLocation.cityName,
+                currentLocation.districtName
+            );
+        }
+    };
+
     const handleIftarToggle = async (value: boolean) => {
         setIftarNotification(value);
         await saveIftarNotification(value);
+
+        // Alt kapatılırsa master da kapanır
+        if (!value) {
+            setAllNotification(false);
+            await saveAllPrayerNotification(false);
+        }
+
+        // Bildirimleri anında güncelle
+        if (todayPrayerTimes && currentLocation) {
+            await schedulePrayerNotifications(
+                todayPrayerTimes,
+                currentLocation.cityName,
+                currentLocation.districtName
+            );
+        }
     };
 
     const handleSahurToggle = async (value: boolean) => {
         setSahurNotification(value);
         await saveSahurNotification(value);
+
+        // Alt kapatılırsa master da kapanır
+        if (!value) {
+            setAllNotification(false);
+            await saveAllPrayerNotification(false);
+        }
+
+        // Bildirimleri anında güncelle
+        if (todayPrayerTimes && currentLocation) {
+            await schedulePrayerNotifications(
+                todayPrayerTimes,
+                currentLocation.cityName,
+                currentLocation.districtName
+            );
+        }
     };
 
 
@@ -349,16 +409,29 @@ const SettingsScreen: React.FC = () => {
                         />
                         <RN.View style={styles.notificationHeader}>
                             <RN.Text style={styles.icon}>🔔</RN.Text>
-                            <RN.Text style={styles.sectionTitle}>Bildirim Ayarları</RN.Text>
+                            <RN.Text style={styles.sectionTitle}>Bildirimler</RN.Text>
                         </RN.View>
+
+                        {/* Master Toggle */}
+                        <RN.View style={styles.switchRow}>
+                            <RN.Text style={[styles.switchLabel, { fontWeight: 'bold' }]}>Namaz Vakitlerini Bildir</RN.Text>
+                            <RN.Switch
+                                value={allNotification}
+                                onValueChange={handleAllNotificationToggle}
+                                trackColor={{ false: '#767577', true: '#34D399' }}
+                                thumbColor={allNotification ? '#FFFFFF' : '#f4f3f4'}
+                            />
+                        </RN.View>
+
+                        <RN.View style={styles.divider} />
 
                         <RN.View style={styles.switchRow}>
                             <RN.Text style={styles.switchLabel}>İftar Bildirimi</RN.Text>
                             <RN.Switch
                                 value={iftarNotification}
                                 onValueChange={handleIftarToggle}
-                                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(52, 211, 153, 0.5)' }}
-                                thumbColor="#FFFFFF"
+                                trackColor={{ false: '#767577', true: '#34D399' }}
+                                thumbColor={iftarNotification ? '#FFFFFF' : '#f4f3f4'}
                             />
                         </RN.View>
 
@@ -369,8 +442,8 @@ const SettingsScreen: React.FC = () => {
                             <RN.Switch
                                 value={sahurNotification}
                                 onValueChange={handleSahurToggle}
-                                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(52, 211, 153, 0.5)' }}
-                                thumbColor="#FFFFFF"
+                                trackColor={{ false: '#767577', true: '#34D399' }}
+                                thumbColor={sahurNotification ? '#FFFFFF' : '#f4f3f4'}
                             />
                         </RN.View>
                     </RN.View>
@@ -545,11 +618,11 @@ const styles = RN.StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: '#161F2C',
+        backgroundColor: '#064E3B',
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         maxHeight: RN.Dimensions.get('window').height * 0.7,
-        paddingBottom: 40,
+        paddingBottom: 50,
     },
     modalHandle: {
         width: 40,
@@ -564,10 +637,12 @@ const styles = RN.StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 24,
+        paddingHorizontal: 24,
+        paddingTop: 10,
+        paddingBottom: 15,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-        paddingTop: 10,
+        marginBottom: 10,
     },
     modalTitle: {
         fontSize: 20,
@@ -579,17 +654,23 @@ const styles = RN.StyleSheet.create({
         color: 'rgba(255, 255, 255, 0.5)',
     },
     modalList: {
-        paddingHorizontal: 10,
+        paddingHorizontal: 14,
     },
     modalItem: {
-        paddingVertical: 16,
-        paddingHorizontal: 20,
-        // Removed borderBottomWidth to clean up list items
-        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        marginBottom: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
     },
     modalItemText: {
         fontSize: 16,
         color: '#FFFFFF',
+        fontWeight: '500',
     },
     nameInput: {
         fontSize: 16,

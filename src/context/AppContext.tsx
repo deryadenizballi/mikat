@@ -10,6 +10,10 @@ import {
     setOnboardingCompleted as saveOnboardingCompleted,
     getAllPreferences
 } from '../services/storageService';
+import {
+    schedulePrayerNotifications,
+    requestNotificationPermissions,
+} from '../services/notificationService';
 
 interface AppContextType {
     // Kullanıcı Bilgileri
@@ -66,6 +70,9 @@ export function AppProvider({ children }: AppProviderProps) {
                 if (savedLocation) setLocationState(savedLocation);
                 if (savedName) setUserNameState(savedName);
                 setOnboardingCompletedState(completed);
+
+                // Bildirim izinlerini iste
+                await requestNotificationPermissions();
             } catch (error) {
                 console.error('AppContext initialization error:', error);
             } finally {
@@ -114,6 +121,15 @@ export function AppProvider({ children }: AppProviderProps) {
                 location.districtKey
             );
             setTodayData(data);
+
+            // Namaz vakitleri başarıyla çekildiğinde bildirimleri zamanla
+            if (data?.prayerTimes) {
+                await schedulePrayerNotifications(
+                    data.prayerTimes,
+                    location.cityName,
+                    location.districtName
+                );
+            }
         } catch (error) {
             setPrayerTimesError(error instanceof Error ? error : new Error('Bilinmeyen hata'));
         } finally {

@@ -4,6 +4,7 @@ import { SelectedLocation, UserPreferences } from '../types';
 const STORAGE_KEYS = {
     USER_NAME: '@mikat_user_name',
     SELECTED_LOCATION: '@mikat_selected_location',
+    ALL_PRAYER_NOTIFICATION: '@mikat_all_prayer_notification',
     IFTAR_NOTIFICATION: '@mikat_iftar_notification',
     SAHUR_NOTIFICATION: '@mikat_sahur_notification',
     ONBOARDING_COMPLETED: '@mikat_onboarding_completed',
@@ -86,6 +87,25 @@ export async function getSahurNotification(): Promise<boolean> {
         return value ? JSON.parse(value) : true; // Varsayılan: açık
     } catch (error) {
         console.error('getSahurNotification error:', error);
+        return true;
+    }
+}
+
+export async function saveAllPrayerNotification(enabled: boolean): Promise<void> {
+    try {
+        await AsyncStorage.setItem(STORAGE_KEYS.ALL_PRAYER_NOTIFICATION, JSON.stringify(enabled));
+    } catch (error) {
+        console.error('saveAllPrayerNotification error:', error);
+        throw error;
+    }
+}
+
+export async function getAllPrayerNotification(): Promise<boolean> {
+    try {
+        const value = await AsyncStorage.getItem(STORAGE_KEYS.ALL_PRAYER_NOTIFICATION);
+        return value ? JSON.parse(value) : true; // Varsayılan: açık
+    } catch (error) {
+        console.error('getAllPrayerNotification error:', error);
         return true;
     }
 }
