@@ -29,7 +29,7 @@ const PrayerTimesScreen: React.FC = () => {
                 setLoading(true);
                 setError(null);
 
-                if (!location?.cityPlateCode || !location?.districtKey) {
+                if (!location?.districtKey) {
                     setError('Lütfen önce şehir ve ilçe seçin.');
                     setLoading(false);
                     return;
@@ -40,12 +40,26 @@ const PrayerTimesScreen: React.FC = () => {
                 const year = now.getFullYear();
                 const month = now.getMonth() + 1; // 1-indexed
 
+                console.log('Fetching prayer times for:', {
+                    districtId: location.districtKey,
+                    year,
+                    month,
+                    expectedDocId: `${location.districtKey}_${year}`
+                });
+
                 const monthlyData = await getMonthlyPrayerTimes(
-                    location.cityPlateCode,
                     location.districtKey,
                     year,
                     month
                 );
+
+                console.log('Monthly data received:', monthlyData.length, 'days');
+
+                if (monthlyData.length === 0) {
+                    setError(`${months[month - 1]} ${year} için veri bulunamadı. Lütfen Firebase'de bu ay için veri olduğundan emin olun.`);
+                    setLoading(false);
+                    return;
+                }
 
                 // Veriyi UI formatına dönüştür
                 const formattedData = monthlyData.map((day: DayData, index: number) => {

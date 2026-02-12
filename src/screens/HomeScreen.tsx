@@ -149,10 +149,10 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
     // Namaz vakitlerini çek
     useEffect(() => {
         async function fetchTimes() {
-            if (location) {
+            if (location?.districtKey) {
                 try {
                     setLoading(true);
-                    const data = await getTodayPrayerTimes(location.cityPlateCode, location.districtKey);
+                    const data = await getTodayPrayerTimes(location.districtKey);
                     setPrayerTimes(data);
                 } catch (error) {
                     console.error('Namaz vakitleri çekilemedi:', error);

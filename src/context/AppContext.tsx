@@ -110,16 +110,13 @@ export function AppProvider({ children }: AppProviderProps) {
 
     // Namaz vakitlerini yenile
     const refreshPrayerTimes = async () => {
-        if (!location) return;
+        if (!location || !location.districtKey) return;
 
         setPrayerTimesLoading(true);
         setPrayerTimesError(null);
 
         try {
-            const data = await getTodayPrayerTimes(
-                location.cityPlateCode,
-                location.districtKey
-            );
+            const data = await getTodayPrayerTimes(location.districtKey);
             setTodayData(data);
 
             // Namaz vakitleri başarıyla çekildiğinde bildirimleri zamanla

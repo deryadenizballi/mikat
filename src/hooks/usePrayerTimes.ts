@@ -17,19 +17,17 @@ interface UsePrayerTimesResult {
 
 /**
  * Bugünün namaz vakitlerini getiren hook
- * @param plateCode - İl plaka kodu
- * @param districtKey - İlçe anahtarı
+ * @param districtId - İlçe ID (örn: "16704")
  */
 export function useTodayPrayerTimes(
-    plateCode: string | null,
-    districtKey: string | null
+    districtId: string | null
 ): UsePrayerTimesResult {
     const [dayData, setDayData] = useState<DayData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchData = useCallback(async () => {
-        if (!plateCode || !districtKey) {
+        if (!districtId) {
             setLoading(false);
             return;
         }
@@ -38,14 +36,14 @@ export function useTodayPrayerTimes(
         setError(null);
 
         try {
-            const data = await getTodayPrayerTimes(plateCode, districtKey);
+            const data = await getTodayPrayerTimes(districtId);
             setDayData(data);
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Bilinmeyen hata'));
         } finally {
             setLoading(false);
         }
-    }, [plateCode, districtKey]);
+    }, [districtId]);
 
     useEffect(() => {
         fetchData();
@@ -62,10 +60,11 @@ export function useTodayPrayerTimes(
 
 /**
  * Belirli bir tarih için namaz vakitlerini getiren hook
+ * @param districtId - İlçe ID (örn: "16704")
+ * @param date - Tarih (YYYY-MM-DD formatında)
  */
 export function usePrayerTimesForDate(
-    plateCode: string | null,
-    districtKey: string | null,
+    districtId: string | null,
     date: string | null
 ): UsePrayerTimesResult {
     const [dayData, setDayData] = useState<DayData | null>(null);
@@ -73,7 +72,7 @@ export function usePrayerTimesForDate(
     const [error, setError] = useState<Error | null>(null);
 
     const fetchData = useCallback(async () => {
-        if (!plateCode || !districtKey || !date) {
+        if (!districtId || !date) {
             setLoading(false);
             return;
         }
@@ -82,14 +81,14 @@ export function usePrayerTimesForDate(
         setError(null);
 
         try {
-            const data = await getPrayerTimesForDate(plateCode, districtKey, date);
+            const data = await getPrayerTimesForDate(districtId, date);
             setDayData(data);
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Bilinmeyen hata'));
         } finally {
             setLoading(false);
         }
-    }, [plateCode, districtKey, date]);
+    }, [districtId, date]);
 
     useEffect(() => {
         fetchData();
@@ -113,10 +112,12 @@ interface UseMonthlyPrayerTimesResult {
 
 /**
  * Aylık namaz vakitlerini getiren hook
+ * @param districtId - İlçe ID (örn: "16704")
+ * @param year - Yıl (örn: 2026)
+ * @param month - Ay (1-12)
  */
 export function useMonthlyPrayerTimes(
-    plateCode: string | null,
-    districtKey: string | null,
+    districtId: string | null,
     year: number,
     month: number
 ): UseMonthlyPrayerTimesResult {
@@ -125,7 +126,7 @@ export function useMonthlyPrayerTimes(
     const [error, setError] = useState<Error | null>(null);
 
     const fetchData = useCallback(async () => {
-        if (!plateCode || !districtKey) {
+        if (!districtId) {
             setLoading(false);
             return;
         }
@@ -134,14 +135,14 @@ export function useMonthlyPrayerTimes(
         setError(null);
 
         try {
-            const data = await getMonthlyPrayerTimes(plateCode, districtKey, year, month);
+            const data = await getMonthlyPrayerTimes(districtId, year, month);
             setDays(data);
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Bilinmeyen hata'));
         } finally {
             setLoading(false);
         }
-    }, [plateCode, districtKey, year, month]);
+    }, [districtId, year, month]);
 
     useEffect(() => {
         fetchData();

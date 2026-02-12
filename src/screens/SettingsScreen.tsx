@@ -6,7 +6,7 @@ import { BlurView } from 'expo-blur';
 import { Colors } from '../styles/theme';
 
 // Firebase Services
-import { getAllCities, getDistrictsForCity } from '../services/prayerTimesService';
+import { getAllStates, getDistrictsForState } from '../services/prayerTimesService';
 import {
     getSelectedLocation,
     saveSelectedLocation,
@@ -22,14 +22,16 @@ import {
 import { schedulePrayerNotifications } from '../services/notificationService';
 import { SelectedLocation } from '../types';
 
-interface CityItem {
-    plateCode: string;
+interface StateItem {
+    id: string;
     name: string;
+    countryId: number;
 }
 
 interface DistrictItem {
-    key: string;
+    id: string;
     name: string;
+    stateId: string;
 }
 
 import { useApp } from '../context/AppContext';
@@ -116,11 +118,11 @@ const SettingsScreen: React.FC = () => {
 
 
     // Firebase verileri
-    const [cities, setCities] = useState<CityItem[]>([]);
+    const [states, setStates] = useState<StateItem[]>([]);
     const [districts, setDistricts] = useState<DistrictItem[]>([]);
 
     // Modal states
-    const [cityModalVisible, setCityModalVisible] = useState(false);
+    const [stateModalVisible, setStateModalVisible] = useState(false);
     const [districtModalVisible, setDistrictModalVisible] = useState(false);
 
     // Loading
@@ -145,13 +147,13 @@ const SettingsScreen: React.FC = () => {
                 setIftarNotification(iftar);
                 setSahurNotification(sahur);
 
-                // Şehirleri yükle
-                const fetchedCities = await getAllCities();
-                setCities(fetchedCities);
+                // İlleri yükle
+                const fetchedStates = await getAllStates();
+                setStates(fetchedStates);
 
-                // Eğer şehir seçiliyse ilçeleri de yükle
+                // Eğer il seçiliyse ilçeleri de yükle
                 if (currentLocation?.cityPlateCode) {
-                    const fetchedDistricts = await getDistrictsForCity(currentLocation.cityPlateCode);
+                    const fetchedDistricts = await getDistrictsForState(currentLocation.cityPlateCode);
                     setDistricts(fetchedDistricts);
                 }
             } catch (error) {
@@ -168,18 +170,18 @@ const SettingsScreen: React.FC = () => {
         setIsEditingName(false);
     };
 
-    // Şehir seçildiğinde
-    const handleCitySelect = async (city: CityItem) => {
-        setCityModalVisible(false);
+    // İl seçildiğinde
+    const handleStateSelect = async (state: StateItem) => {
+        setStateModalVisible(false);
 
         // İlçeleri yükle
-        const fetchedDistricts = await getDistrictsForCity(city.plateCode);
+        const fetchedDistricts = await getDistrictsForState(state.id);
         setDistricts(fetchedDistricts);
 
         // Yeni konum (ilçe henüz seçilmedi)
         const newLocation: SelectedLocation = {
-            cityPlateCode: city.plateCode,
-            cityName: city.name,
+            cityPlateCode: state.id,
+            cityName: state.name,
             districtKey: '',
             districtName: '',
         };
@@ -196,7 +198,7 @@ const SettingsScreen: React.FC = () => {
         if (currentLocation) {
             const newLocation: SelectedLocation = {
                 ...currentLocation,
-                districtKey: district.key,
+                districtKey: district.id,
                 districtName: district.name,
             };
             await setLocation(newLocation);
@@ -365,9 +367,9 @@ const SettingsScreen: React.FC = () => {
                         />
                         <SettingItem
                             icon="📍"
-                            title="Şehir Seçimi"
+                            title="İl Seçimi"
                             subtitle={currentLocation?.cityName || 'Seçilmedi'}
-                            onPress={() => setCityModalVisible(true)}
+                            onPress={() => setStateModalVisible(true)}
                         />
                         <SettingItem
                             icon="🏢"
@@ -377,7 +379,7 @@ const SettingsScreen: React.FC = () => {
                                 if (currentLocation?.cityPlateCode) {
                                     setDistrictModalVisible(true);
                                 } else {
-                                    RN.Alert.alert('Uyarı', 'Önce şehir seçmelisiniz.');
+                                    RN.Alert.alert('Uyarı', 'Önce il seçmelisiniz.');
                                 }
                             }}
                             isLast={true}
@@ -466,14 +468,14 @@ const SettingsScreen: React.FC = () => {
                     <RN.Text style={styles.versionText}>Versiyon 1.0.0</RN.Text>
                 </RN.ScrollView>
 
-                {/* Şehir Seçim Modal */}
+                {/* İl Seçim Modal */}
                 <SelectionModal
-                    visible={cityModalVisible}
-                    onClose={() => setCityModalVisible(false)}
-                    data={cities}
-                    onSelect={handleCitySelect}
-                    title="Şehir Seçiniz"
-                    keyExtractor={(item) => item.plateCode}
+                    visible={stateModalVisible}
+                    onClose={() => setStateModalVisible(false)}
+                    data={states}
+                    onSelect={handleStateSelect}
+                    title="İl Seçiniz"
+                    keyExtractor={(item) => item.id}
                     labelExtractor={(item) => item.name}
                 />
 
@@ -484,7 +486,7 @@ const SettingsScreen: React.FC = () => {
                     data={districts}
                     onSelect={handleDistrictSelect}
                     title="İlçe Seçiniz"
-                    keyExtractor={(item) => item.key}
+                    keyExtractor={(item) => item.id}
                     labelExtractor={(item) => item.name}
                 />
             </SafeAreaView>

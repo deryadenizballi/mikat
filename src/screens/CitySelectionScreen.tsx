@@ -30,7 +30,7 @@ import { Colors } from '../styles/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Firebase Services
-import { getAllCities, getDistrictsForCity } from '../services/prayerTimesService';
+import { getAllStates, getDistrictsForState } from '../services/prayerTimesService';
 import { SelectedLocation } from '../types';
 import { useApp } from '../context/AppContext';
 
@@ -48,14 +48,16 @@ interface CitySelectionScreenProps {
     route: CitySelectionScreenRouteProp;
 }
 
-interface CityItem {
-    plateCode: string;
+interface StateItem {
+    id: string;
     name: string;
+    countryId: number;
 }
 
 interface DistrictItem {
-    key: string;
+    id: string;
     name: string;
+    stateId: string;
 }
 
 // Dropdown bileşeni
@@ -145,43 +147,43 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
     const { userName } = route.params;
     const { setLocation } = useApp();
 
-    // Seçilen şehir ve ilçe
-    const [selectedCity, setSelectedCity] = useState<CityItem | null>(null);
+    // Seçilen il ve ilçe
+    const [selectedState, setSelectedState] = useState<StateItem | null>(null);
     const [selectedDistrict, setSelectedDistrict] = useState<DistrictItem | null>(null);
 
     // Firebase'den gelen veriler
-    const [cities, setCities] = useState<CityItem[]>([]);
+    const [states, setStates] = useState<StateItem[]>([]);
     const [districts, setDistricts] = useState<DistrictItem[]>([]);
 
     // Loading states
-    const [citiesLoading, setCitiesLoading] = useState(true);
+    const [statesLoading, setStatesLoading] = useState(true);
     const [districtsLoading, setDistrictsLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
     // Modal states
-    const [cityModalVisible, setCityModalVisible] = useState(false);
+    const [stateModalVisible, setStateModalVisible] = useState(false);
     const [districtModalVisible, setDistrictModalVisible] = useState(false);
 
-    // Şehirleri Firebase'den çek
+    // İlleri Firebase'den çek
     useEffect(() => {
-        async function fetchCities() {
+        async function fetchStates() {
             try {
-                setCitiesLoading(true);
-                const fetchedCities = await getAllCities();
-                setCities(fetchedCities);
+                setStatesLoading(true);
+                const fetchedStates = await getAllStates();
+                setStates(fetchedStates);
             } catch (error) {
-                console.error('Şehirler yüklenirken hata:', error);
+                console.error('İller yüklenirken hata:', error);
             } finally {
-                setCitiesLoading(false);
+                setStatesLoading(false);
             }
         }
-        fetchCities();
+        fetchStates();
     }, []);
 
-    // Şehir seçildiğinde ilçeleri çek
+    // İl seçildiğinde ilçeleri çek
     useEffect(() => {
         async function fetchDistricts() {
-            if (!selectedCity) {
+            if (!selectedState) {
                 setDistricts([]);
                 return;
             }
@@ -189,7 +191,7 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
             try {
                 setDistrictsLoading(true);
                 setSelectedDistrict(null);
-                const fetchedDistricts = await getDistrictsForCity(selectedCity.plateCode);
+                const fetchedDistricts = await getDistrictsForState(selectedState.id);
                 setDistricts(fetchedDistricts);
             } catch (error) {
                 console.error('İlçeler yüklenirken hata:', error);
@@ -198,11 +200,11 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
             }
         }
         fetchDistricts();
-    }, [selectedCity]);
+    }, [selectedState]);
 
-    const handleCitySelect = (city: CityItem) => {
-        setSelectedCity(city);
-        setCityModalVisible(false);
+    const handleStateSelect = (state: StateItem) => {
+        setSelectedState(state);
+        setStateModalVisible(false);
     };
 
     const handleDistrictSelect = (district: DistrictItem) => {
@@ -214,19 +216,19 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
         console.log('Locate Me button pressed');
     };
 
-    const handleSaveCity = async () => {
-        if (selectedCity && selectedDistrict) {
+    const handleSaveLocation = async () => {
+        if (selectedState && selectedDistrict) {
             try {
                 setSaving(true);
                 const location: SelectedLocation = {
-                    cityPlateCode: selectedCity.plateCode,
-                    cityName: selectedCity.name,
-                    districtKey: selectedDistrict.key,
+                    cityPlateCode: selectedState.id,
+                    cityName: selectedState.name,
+                    districtKey: selectedDistrict.id,
                     districtName: selectedDistrict.name,
                 };
                 await setLocation(location);
                 navigation.navigate('MainApp', {
-                    city: selectedCity.name,
+                    city: selectedState.name,
                     district: selectedDistrict.name
                 });
             } catch (error) {
@@ -237,10 +239,10 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
         }
     };
 
-    const isButtonDisabled = selectedCity === null || selectedDistrict === null || saving;
+    const isButtonDisabled = selectedState === null || selectedDistrict === null || saving;
 
-    // İlk 4 şehir (hızlı seçim için)
-    const quickCities = cities.slice(0, 4);
+    // İlk 4 il (hızlı seçim için)
+    const quickStates = states.slice(0, 4);
 
 
 
@@ -274,19 +276,19 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Şehir Seçimi</Text>
+                        <Text style={styles.headerTitle}>Konum Seçimi</Text>
                         <Text style={styles.headerSubtitle}>
-                            Selam {userName}, vaktini hesaplamak için şehri ve ilçeni seçmelisin.
+                            Selam {userName}, vaktini hesaplamak için ilini ve ilçeni seçmelisin.
                         </Text>
                     </View>
 
-                    {/* Şehir Dropdown */}
+                    {/* İl Dropdown */}
                     <View style={styles.dropdownSection}>
                         <DropdownSelector
-                            label="Şehir seçiniz..."
-                            value={selectedCity?.name || null}
-                            onPress={() => setCityModalVisible(true)}
-                            loading={citiesLoading}
+                            label="İl seçiniz..."
+                            value={selectedState?.name || null}
+                            onPress={() => setStateModalVisible(true)}
+                            loading={statesLoading}
                         />
                     </View>
 
@@ -297,7 +299,7 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                             value={selectedDistrict?.name || null}
                             onPress={() => setDistrictModalVisible(true)}
                             loading={districtsLoading}
-                            disabled={!selectedCity || districtsLoading}
+                            disabled={!selectedState || districtsLoading}
                         />
                     </View>
 
@@ -311,28 +313,28 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                         <Text style={styles.locateButtonText}>Konumumu Otomatik Bul</Text>
                     </TouchableOpacity>
 
-                    {/* Hızlı Şehir Seçimi (İlk 4) */}
-                    {!citiesLoading && quickCities.length > 0 && (
+                    {/* Hızlı İl Seçimi (İlk 4) */}
+                    {!statesLoading && quickStates.length > 0 && (
                         <View style={styles.quickSelectSection}>
-                            <Text style={styles.sectionTitle}>Şehirler</Text>
+                            <Text style={styles.sectionTitle}>İller</Text>
                             <View style={styles.citiesGrid}>
-                                {quickCities.map((city) => (
+                                {quickStates.map((state) => (
                                     <TouchableOpacity
-                                        key={city.plateCode}
+                                        key={state.id}
                                         style={[
                                             styles.cityButton,
-                                            selectedCity?.plateCode === city.plateCode && styles.cityButtonSelected,
+                                            selectedState?.id === state.id && styles.cityButtonSelected,
                                         ]}
-                                        onPress={() => handleCitySelect(city)}
+                                        onPress={() => handleStateSelect(state)}
                                         activeOpacity={0.7}
                                     >
                                         <Text
                                             style={[
                                                 styles.cityButtonText,
-                                                selectedCity?.plateCode === city.plateCode && styles.cityButtonTextSelected,
+                                                selectedState?.id === state.id && styles.cityButtonTextSelected,
                                             ]}
                                         >
-                                            {city.name}
+                                            {state.name}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
@@ -341,10 +343,10 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                     )}
 
                     {/* Seçilen İlçe Gösterimi */}
-                    {selectedCity && selectedDistrict && (
+                    {selectedState && selectedDistrict && (
                         <View style={styles.selectedInfo}>
                             <Text style={styles.selectedInfoText}>
-                                📍 {selectedCity.name}, {selectedDistrict.name}
+                                📍 {selectedState.name}, {selectedDistrict.name}
                             </Text>
                         </View>
                     )}
@@ -355,7 +357,7 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                 <View style={styles.buttonContainer}>
                     <PrimaryButton
                         title={saving ? "Kaydediliyor..." : "Kaydet ve Devam Et"}
-                        onPress={handleSaveCity}
+                        onPress={handleSaveLocation}
                         disabled={isButtonDisabled}
                         style={styles.saveButton}
                         textStyle={{ color: '#111' }}
@@ -363,14 +365,14 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                 </View>
             </SafeAreaView>
 
-            {/* Şehir Seçim Modal */}
+            {/* İl Seçim Modal */}
             <SelectionModal
-                visible={cityModalVisible}
-                onClose={() => setCityModalVisible(false)}
-                data={cities}
-                onSelect={handleCitySelect}
-                title="Şehir Seçiniz"
-                keyExtractor={(item) => item.plateCode}
+                visible={stateModalVisible}
+                onClose={() => setStateModalVisible(false)}
+                data={states}
+                onSelect={handleStateSelect}
+                title="İl Seçiniz"
+                keyExtractor={(item) => item.id}
                 labelExtractor={(item) => item.name}
             />
 
@@ -381,7 +383,7 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                 data={districts}
                 onSelect={handleDistrictSelect}
                 title="İlçe Seçiniz"
-                keyExtractor={(item) => item.key}
+                keyExtractor={(item) => item.id}
                 labelExtractor={(item) => item.name}
             />
         </View>

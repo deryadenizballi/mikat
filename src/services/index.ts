@@ -4,9 +4,9 @@ export {
     getTodayPrayerTimes,
     getPrayerTimesForDateRange,
     getMonthlyPrayerTimes,
-    getAllCities,
-    getDistrictsForCity,
-    getCityInfo
+    getAllStates,
+    getDistrictsForState,
+    getStateInfo
 } from './prayerTimesService';
 
 // Storage Service

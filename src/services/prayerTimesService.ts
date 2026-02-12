@@ -4,59 +4,52 @@ import {
     collection,
     getDocs,
     query,
-    where,
-    documentId
+    where
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { PrayerTimes, DayData, City, District, SelectedLocation } from '../types';
+import { PrayerTimes, DayData, State, District, PrayerTimeDocument } from '../types';
 
 /**
  * Belirli bir tarih için namaz vakitlerini getirir
- * @param plateCode - İl plaka kodu (örn: "51" for Niğde)
- * @param districtKey - İlçe anahtarı (örn: "merkez")
+ * @param districtId - İlçe ID (örn: "16704")
  * @param date - Tarih (YYYY-MM-DD formatında)
  */
 export async function getPrayerTimesForDate(
-    plateCode: string,
-    districtKey: string,
+    districtId: string,
     date: string
 ): Promise<DayData | null> {
-    if (!plateCode || !districtKey) return null;
+    if (!districtId || !date) return null;
 
     try {
-        const cityDocRef = doc(db, 'cities', plateCode);
-        const cityDocSnap = await getDoc(cityDocRef);
+        const [year, month, day] = date.split('-');
+        // Firebase'de aylar string olarak saklanıyor: "01", "02", vb.
+        const monthKey = month; // Zaten "01", "02" formatında geliyor
+        const dayKey = parseInt(day);
 
-        if (cityDocSnap.exists()) {
-            const cityData = cityDocSnap.data();
+        // Döküman ID formatı: districtId_year (örn: "16704_2026")
+        const docId = `${districtId}_${year}`;
+        const docRef = doc(db, 'prayerTimes', docId);
+        const docSnap = await getDoc(docRef);
 
-            // 1. Önce Map yapısında ara (Eski yapı için fallback)
-            if (cityData && cityData.districts?.[districtKey]?.days?.[date]) {
-                return cityData.districts[districtKey].days[date];
+        if (docSnap.exists()) {
+            const prayerDoc = docSnap.data() as PrayerTimeDocument;
+            
+            const monthData = prayerDoc.months?.[monthKey];
+            if (monthData && monthData[dayKey]) {
+                const dayPrayer = monthData[dayKey];
+                return {
+                    date: date,
+                    prayerTimes: {
+                        imsak: dayPrayer.imsak,
+                        gunes: dayPrayer.gunes,
+                        ogle: dayPrayer.ogle,
+                        ikindi: dayPrayer.ikindi,
+                        aksam: dayPrayer.aksam,
+                        yatsi: dayPrayer.yatsi
+                    },
+                    hijriDate: dayPrayer.hijri
+                };
             }
-        }
-
-        // 2. District Sub-collection olarak ara
-        const districtDocRef = doc(db, 'cities', plateCode, 'districts', districtKey);
-        const districtDocSnap = await getDoc(districtDocRef);
-
-        if (districtDocSnap.exists()) {
-            const districtData = districtDocSnap.data();
-            // District içinde days field'ı varsa
-            if (districtData.days?.[date]) {
-                return districtData.days[date];
-            }
-        }
-
-        // 3. Days Sub-collection olarak ara (cities/51/districts/merkez/days/2026-02-01)
-        const dayDocRef = doc(db, 'cities', plateCode, 'districts', districtKey, 'days', date);
-        const dayDocSnap = await getDoc(dayDocRef);
-
-        if (dayDocSnap.exists()) {
-            const dayData = dayDocSnap.data();
-            // Eğer doküman direkt DayData yapısındaysa (örn: { prayerTimes: {...}, date: "..." })
-            // Veya doküman içinde bir field ise kontrol et. Genelde direkt data döner.
-            return dayData as DayData;
         }
 
         return null;
@@ -70,83 +63,83 @@ export async function getPrayerTimesForDate(
  * Bugünün namaz vakitlerini getirir
  */
 export async function getTodayPrayerTimes(
-    plateCode: string,
-    districtKey: string
+    districtId: string
 ): Promise<DayData | null> {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    return getPrayerTimesForDate(plateCode, districtKey, today);
+    return getPrayerTimesForDate(districtId, today);
 }
 
 /**
  * Belirli bir tarih aralığı için namaz vakitlerini getirir
- * @param plateCode - İl plaka kodu
- * @param districtKey - İlçe anahtarı
+ * @param districtId - İlçe ID (örn: "16704")
  * @param startDate - Başlangıç tarihi (YYYY-MM-DD)
  * @param endDate - Bitiş tarihi (YYYY-MM-DD)
  */
 export async function getPrayerTimesForDateRange(
-    plateCode: string,
-    districtKey: string,
+    districtId: string,
     startDate: string,
     endDate: string
 ): Promise<DayData[]> {
-    if (!plateCode || !districtKey) return [];
+    if (!districtId) return [];
 
     try {
         const results: DayData[] = [];
+        
+        const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+        const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
 
-        // 1. Önce eski Map yapısını kontrol et
-        const cityDocRef = doc(db, 'cities', plateCode);
-        const cityDocSnap = await getDoc(cityDocRef);
+        // Her yıl için ayrı döküman çek (format: districtId_year, örn: "16704_2026")
+        for (let year = startYear; year <= endYear; year++) {
+            const docId = `${districtId}_${year}`;
+            const docRef = doc(db, 'prayerTimes', docId);
+            const docSnap = await getDoc(docRef);
 
-        if (cityDocSnap.exists()) {
-            const cityData = cityDocSnap.data();
-            if (cityData && cityData.districts?.[districtKey]?.days) {
-                const days = cityData.districts[districtKey].days;
-                Object.keys(days)
-                    .filter(date => date >= startDate && date <= endDate)
-                    .forEach(date => results.push(days[date]));
+            console.log(`Checking document: ${docId}, exists: ${docSnap.exists()}`);
 
-                if (results.length > 0) return results.sort((a, b) => a.date.localeCompare(b.date));
+            if (docSnap.exists()) {
+                const prayerDoc = docSnap.data() as PrayerTimeDocument;
+                console.log(`Document ${docId} data:`, {
+                    districtId: prayerDoc.districtId,
+                    districtName: prayerDoc.districtName,
+                    availableMonths: Object.keys(prayerDoc.months || {})
+                });
+                
+                const monthStart = (year === startYear) ? startMonth : 1;
+                const monthEnd = (year === endYear) ? endMonth : 12;
+                
+                for (let month = monthStart; month <= monthEnd; month++) {
+                    // Firebase'de aylar string olarak saklanıyor: "01", "02", vb.
+                    const monthKey = String(month).padStart(2, '0');
+                    const monthData = prayerDoc.months?.[monthKey];
+                    if (!monthData) {
+                        console.log(`Month ${monthKey} not found in document ${docId}. Available months:`, Object.keys(prayerDoc.months || {}));
+                        continue;
+                    }
+                    
+                    const dayStart = (year === startYear && month === startMonth) ? startDay : 1;
+                    const dayEnd = (year === endYear && month === endMonth) ? endDay : 31;
+                    
+                    for (let day = dayStart; day <= dayEnd; day++) {
+                        const dayPrayer = monthData[day];
+                        if (dayPrayer) {
+                            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            results.push({
+                                date: dateStr,
+                                prayerTimes: {
+                                    imsak: dayPrayer.imsak,
+                                    gunes: dayPrayer.gunes,
+                                    ogle: dayPrayer.ogle,
+                                    ikindi: dayPrayer.ikindi,
+                                    aksam: dayPrayer.aksam,
+                                    yatsi: dayPrayer.yatsi
+                                },
+                                hijriDate: dayPrayer.hijri
+                            });
+                        }
+                    }
+                }
             }
         }
-
-        // 2. District Sub-collection içindeki days field'ını kontrol et
-        const districtDocRef = doc(db, 'cities', plateCode, 'districts', districtKey);
-        const districtDocSnap = await getDoc(districtDocRef);
-
-        if (districtDocSnap.exists()) {
-            const districtData = districtDocSnap.data();
-            if (districtData.days) {
-                const days = districtData.days;
-                Object.keys(days)
-                    .filter(date => date >= startDate && date <= endDate)
-                    .forEach(date => results.push(days[date]));
-
-                if (results.length > 0) return results.sort((a, b) => a.date.localeCompare(b.date));
-            }
-        }
-
-        // 3. Days Sub-collection sorgusu
-        const daysCollectionRef = collection(db, 'cities', plateCode, 'districts', districtKey, 'days');
-
-        // Tarih aralığına göre sorgula (Document ID tarih ise)
-        const q = query(
-            daysCollectionRef,
-            where(documentId(), '>=', startDate),
-            where(documentId(), '<=', endDate)
-        );
-
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            // Data içinde date alanı yoksa ID'yi date olarak kullan
-            const dayData = {
-                ...data,
-                date: data.date || doc.id
-            } as DayData;
-            results.push(dayData);
-        });
 
         return results.sort((a, b) => a.date.localeCompare(b.date));
     } catch (error) {
@@ -157,14 +150,12 @@ export async function getPrayerTimesForDateRange(
 
 /**
  * Aylık namaz vakitlerini getirir
- * @param plateCode - İl plaka kodu
- * @param districtKey - İlçe anahtarı  
+ * @param districtId - İlçe ID (örn: "16704")
  * @param year - Yıl (örn: 2026)
  * @param month - Ay (1-12)
  */
 export async function getMonthlyPrayerTimes(
-    plateCode: string,
-    districtKey: string,
+    districtId: string,
     year: number,
     month: number
 ): Promise<DayData[]> {
@@ -172,102 +163,90 @@ export async function getMonthlyPrayerTimes(
     const lastDay = new Date(year, month, 0).getDate();
     const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
 
-    return getPrayerTimesForDateRange(plateCode, districtKey, startDate, endDate);
+    return getPrayerTimesForDateRange(districtId, startDate, endDate);
 }
 
 /**
- * Tüm şehirleri getirir
+ * Tüm illeri getirir (states collection)
  */
-export async function getAllCities(): Promise<Array<{ plateCode: string; name: string }>> {
+export async function getAllStates(): Promise<Array<{ id: string; name: string; countryId: number }>> {
     try {
-        const citiesRef = collection(db, 'cities');
-        const snapshot = await getDocs(citiesRef);
+        const statesRef = collection(db, 'states');
+        const snapshot = await getDocs(statesRef);
 
-        const cities: Array<{ plateCode: string; name: string }> = [];
+        const states: Array<{ id: string; name: string; countryId: number }> = [];
 
         snapshot.forEach((doc) => {
-            const data = doc.data() as City;
-            cities.push({
-                plateCode: doc.id,
-                name: data.name
+            const data = doc.data() as State;
+            states.push({
+                id: doc.id,
+                name: data.name,
+                countryId: data.countryId
             });
         });
 
         // İsme göre sırala
-        return cities.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        return states.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
     } catch (error) {
-        console.error('getAllCities error:', error);
+        console.error('getAllStates error:', error);
         throw error;
     }
 }
 
 /**
- * Belirli bir ilin ilçelerini getirir
- * @param plateCode - İl plaka kodu
+ * Belirli bir ilin ilçelerini getirir (districts collection)
+ * @param stateId - İl ID (örn: "500")
  */
-export async function getDistrictsForCity(
-    plateCode: string
-): Promise<Array<{ key: string; name: string }>> {
+export async function getDistrictsForState(
+    stateId: string
+): Promise<Array<{ id: string; name: string; stateId: string }>> {
     try {
-        const docRef = doc(db, 'cities', plateCode);
-        const docSnap = await getDoc(docRef);
+        const districtsQuery = query(
+            collection(db, 'districts'),
+            where('stateId', '==', stateId)
+        );
+        
+        const snapshot = await getDocs(districtsQuery);
+        const districts: Array<{ id: string; name: string; stateId: string }> = [];
 
-        if (docSnap.exists()) {
-            const cityData = docSnap.data();
+        snapshot.forEach((doc) => {
+            const data = doc.data() as District;
+            districts.push({
+                id: doc.id,
+                name: data.name,
+                stateId: data.stateId
+            });
+        });
 
-            // 1. Önce document içindeki field'a bak (Map yapısı)
-            if (cityData && cityData.districts) {
-                const districts = Object.entries(cityData.districts).map(([key, district]: [string, any]) => ({
-                    key,
-                    name: district.name || key
-                }));
-                return districts.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-            }
-
-            // 2. Field yoksa sub-collection'a bak
-            const districtsRef = collection(db, 'cities', plateCode, 'districts');
-            const districtsSnap = await getDocs(districtsRef);
-
-            if (!districtsSnap.empty) {
-                const districts: Array<{ key: string; name: string }> = [];
-                districtsSnap.forEach((d) => {
-                    const data = d.data();
-                    districts.push({
-                        key: d.id,
-                        name: data.name || d.id
-                    });
-                });
-                return districts.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-            }
-        }
-
-        return [];
+        // İsme göre sırala
+        return districts.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
     } catch (error) {
-        console.error('getDistrictsForCity error:', error);
+        console.error('getDistrictsForState error:', error);
         throw error;
     }
 }
 
 /**
- * Şehir bilgisini getirir
- * @param plateCode - İl plaka kodu
+ * İl bilgisini getirir (states collection)
+ * @param stateId - İl ID (örn: "500")
  */
-export async function getCityInfo(plateCode: string): Promise<{ name: string; plateCode: number } | null> {
+export async function getStateInfo(stateId: string): Promise<{ id: string; name: string; countryId: number } | null> {
     try {
-        const docRef = doc(db, 'cities', plateCode);
+        const docRef = doc(db, 'states', stateId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            const cityData = docSnap.data() as City;
+            const stateData = docSnap.data() as State;
             return {
-                name: cityData.name,
-                plateCode: cityData.plateCode
+                id: stateId,
+                name: stateData.name,
+                countryId: stateData.countryId
             };
         }
 
         return null;
     } catch (error) {
-        console.error('getCityInfo error:', error);
+        console.error('getStateInfo error:', error);
         throw error;
     }
 }
