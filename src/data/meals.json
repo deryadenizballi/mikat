@@ -1,0 +1,561 @@
+{
+    "year": 2026,
+    "timezone": "Europe/Istanbul",
+    "days": [
+        {
+            "day": 1,
+            "date": "2026-03-01",
+            "sahur": [
+                "Haşlanmış yumurta",
+                "Beyaz peynir",
+                "Tam buğday ekmeği",
+                "Zeytin",
+                "Salatalık",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Mercimek çorbası",
+                "Izgara tavuk",
+                "Pirinç pilavı",
+                "Mevsim salata",
+                "Ayran"
+            ],
+            "type": "dengeli",
+            "calorie": 1850
+        },
+        {
+            "day": 2,
+            "date": "2026-03-02",
+            "sahur": [
+                "Omlet",
+                "Kaşar peyniri",
+                "Tam buğday ekmeği",
+                "Domates",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Ezogelin çorba",
+                "Et sote",
+                "Bulgur pilavı",
+                "Yoğurt"
+            ],
+            "type": "dengeli",
+            "calorie": 1900
+        },
+        {
+            "day": 3,
+            "date": "2026-03-03",
+            "sahur": [
+                "Yulaf lapası",
+                "Muz",
+                "Badem",
+                "Süt",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Sebze çorbası",
+                "Fırın köfte",
+                "Patates püresi",
+                "Salata"
+            ],
+            "type": "hafif",
+            "calorie": 1750
+        },
+        {
+            "day": 4,
+            "date": "2026-03-04",
+            "sahur": [
+                "Menemen",
+                "Lor peyniri",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Tarhana çorbası",
+                "Izgara balık",
+                "Roka salatası",
+                "Limon"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 5,
+            "date": "2026-03-05",
+            "sahur": [
+                "Haşlanmış yumurta",
+                "Avokado",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Mercimek çorbası",
+                "Tavuk sote",
+                "Bulgur pilavı",
+                "Cacık"
+            ],
+            "type": "dengeli",
+            "calorie": 1800
+        },
+        {
+            "day": 6,
+            "date": "2026-03-06",
+            "sahur": [
+                "Peynir tabağı",
+                "Zeytin",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Domates çorbası",
+                "Karnıyarık",
+                "Pirinç pilavı",
+                "Yoğurt"
+            ],
+            "type": "dengeli",
+            "calorie": 1900
+        },
+        {
+            "day": 7,
+            "date": "2026-03-07",
+            "sahur": [
+                "Yulaf",
+                "Elma",
+                "Ceviz",
+                "Süt",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Sebze çorbası",
+                "Fırın tavuk",
+                "Salata"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 8,
+            "date": "2026-03-08",
+            "sahur": [
+                "Omlet",
+                "Lor peyniri",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Ezogelin",
+                "Izgara köfte",
+                "Bulgur pilavı",
+                "Ayran"
+            ],
+            "type": "dengeli",
+            "calorie": 1850
+        },
+        {
+            "day": 9,
+            "date": "2026-03-09",
+            "sahur": [
+                "Haşlanmış yumurta",
+                "Avokado",
+                "Salatalık",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Mercimek çorbası",
+                "Sebzeli makarna",
+                "Yoğurt"
+            ],
+            "type": "hafif",
+            "calorie": 1650
+        },
+        {
+            "day": 10,
+            "date": "2026-03-10",
+            "sahur": [
+                "Menemen",
+                "Peynir",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Tarhana",
+                "Et güveç",
+                "Pirinç pilavı",
+                "Salata"
+            ],
+            "type": "dengeli",
+            "calorie": 1950
+        },
+        {
+            "day": 11,
+            "date": "2026-03-11",
+            "sahur": [
+                "Yulaf",
+                "Muz",
+                "Fıstık ezmesi",
+                "Süt",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Sebze çorbası",
+                "Izgara balık",
+                "Salata"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 12,
+            "date": "2026-03-12",
+            "sahur": [
+                "Omlet",
+                "Kaşar",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Ezogelin",
+                "Tavuk şiş",
+                "Bulgur pilavı",
+                "Cacık"
+            ],
+            "type": "dengeli",
+            "calorie": 1850
+        },
+        {
+            "day": 13,
+            "date": "2026-03-13",
+            "sahur": [
+                "Haşlanmış yumurta",
+                "Lor",
+                "Zeytin",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Mercimek",
+                "Sebze yemeği",
+                "Yoğurt"
+            ],
+            "type": "hafif",
+            "calorie": 1650
+        },
+        {
+            "day": 14,
+            "date": "2026-03-14",
+            "sahur": [
+                "Yulaf",
+                "Elma",
+                "Ceviz",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Tarhana",
+                "Izgara köfte",
+                "Pirinç pilavı",
+                "Salata"
+            ],
+            "type": "dengeli",
+            "calorie": 1900
+        },
+        {
+            "day": 15,
+            "date": "2026-03-15",
+            "sahur": [
+                "Menemen",
+                "Peynir",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Sebze çorbası",
+                "Fırın tavuk",
+                "Yoğurt"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 16,
+            "date": "2026-03-16",
+            "sahur": [
+                "Omlet",
+                "Lor peyniri",
+                "Avokado",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Ezogelin",
+                "Et sote",
+                "Bulgur pilavı",
+                "Ayran"
+            ],
+            "type": "dengeli",
+            "calorie": 1900
+        },
+        {
+            "day": 17,
+            "date": "2026-03-17",
+            "sahur": [
+                "Yulaf",
+                "Muz",
+                "Badem",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Mercimek",
+                "Sebze yemeği",
+                "Yoğurt"
+            ],
+            "type": "hafif",
+            "calorie": 1650
+        },
+        {
+            "day": 18,
+            "date": "2026-03-18",
+            "sahur": [
+                "Haşlanmış yumurta",
+                "Peynir",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Tarhana",
+                "Izgara balık",
+                "Salata"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 19,
+            "date": "2026-03-19",
+            "sahur": [
+                "Menemen",
+                "Lor",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Ezogelin",
+                "Köfte",
+                "Pirinç pilavı",
+                "Yoğurt"
+            ],
+            "type": "dengeli",
+            "calorie": 1900
+        },
+        {
+            "day": 20,
+            "date": "2026-03-20",
+            "sahur": [
+                "Yulaf",
+                "Elma",
+                "Ceviz",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Sebze çorbası",
+                "Fırın tavuk",
+                "Salata"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 21,
+            "date": "2026-03-21",
+            "sahur": [
+                "Omlet",
+                "Kaşar",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Mercimek",
+                "Et güveç",
+                "Bulgur pilavı"
+            ],
+            "type": "dengeli",
+            "calorie": 1950
+        },
+        {
+            "day": 22,
+            "date": "2026-03-22",
+            "sahur": [
+                "Haşlanmış yumurta",
+                "Avokado",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Tarhana",
+                "Sebze yemeği",
+                "Yoğurt"
+            ],
+            "type": "hafif",
+            "calorie": 1650
+        },
+        {
+            "day": 23,
+            "date": "2026-03-23",
+            "sahur": [
+                "Yulaf",
+                "Muz",
+                "Badem",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Ezogelin",
+                "Izgara köfte",
+                "Pirinç pilavı"
+            ],
+            "type": "dengeli",
+            "calorie": 1850
+        },
+        {
+            "day": 24,
+            "date": "2026-03-24",
+            "sahur": [
+                "Menemen",
+                "Peynir",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Sebze çorbası",
+                "Izgara balık",
+                "Salata"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 25,
+            "date": "2026-03-25",
+            "sahur": [
+                "Omlet",
+                "Lor",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Mercimek",
+                "Et sote",
+                "Bulgur pilavı"
+            ],
+            "type": "dengeli",
+            "calorie": 1900
+        },
+        {
+            "day": 26,
+            "date": "2026-03-26",
+            "sahur": [
+                "Yulaf",
+                "Elma",
+                "Ceviz",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Sebze çorbası",
+                "Fırın tavuk",
+                "Yoğurt"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 27,
+            "date": "2026-03-27",
+            "sahur": [
+                "Haşlanmış yumurta",
+                "Peynir",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Ezogelin",
+                "Köfte",
+                "Pirinç pilavı"
+            ],
+            "type": "dengeli",
+            "calorie": 1850
+        },
+        {
+            "day": 28,
+            "date": "2026-03-28",
+            "sahur": [
+                "Menemen",
+                "Lor",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Sebze çorbası",
+                "Sebze yemeği",
+                "Yoğurt"
+            ],
+            "type": "hafif",
+            "calorie": 1600
+        },
+        {
+            "day": 29,
+            "date": "2026-03-29",
+            "sahur": [
+                "Yulaf",
+                "Muz",
+                "Badem",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Tarhana",
+                "Izgara tavuk",
+                "Salata"
+            ],
+            "type": "hafif",
+            "calorie": 1700
+        },
+        {
+            "day": 30,
+            "date": "2026-03-30",
+            "sahur": [
+                "Haşlanmış yumurta",
+                "Peynir",
+                "Tam buğday ekmeği",
+                "Su"
+            ],
+            "iftar": [
+                "Hurma",
+                "Mercimek",
+                "Et güveç",
+                "Pilav",
+                "Salata"
+            ],
+            "type": "dengeli",
+            "calorie": 1950
+        }
+    ]
+}

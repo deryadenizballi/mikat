@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as RN from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
@@ -10,6 +10,8 @@ import { Colors } from '../styles/theme';
 import { useApp } from '../context/AppContext';
 import { getTodayPrayerTimes } from '../services/prayerTimesService';
 import { DayData } from '../types';
+import mealData from '../data/meals.json';
+import hadithData from '../data/hadiths.json';
 
 type HomeScreenRouteProp = RouteProp<MainTabParamList, 'Home'>;
 
@@ -17,7 +19,7 @@ interface HomeScreenProps {
     route: HomeScreenRouteProp;
 }
 
-const { width } = RN.Dimensions.get('window');
+const { width, height } = RN.Dimensions.get('window');
 
 // Android için LayoutAnimation desteğini etkinleştir
 if (RN.Platform.OS === 'android' && RN.UIManager.setLayoutAnimationEnabledExperimental) {
@@ -32,8 +34,8 @@ const TimerCircle = ({
     colors,
     subLabel,
     progress = 1,
-    small = false,
-    onPress
+    onPress,
+    animatedStyle
 }: {
     size: number;
     label: string;
@@ -41,50 +43,51 @@ const TimerCircle = ({
     colors: string[];
     subLabel: string;
     progress?: number;
-    small?: boolean;
     onPress?: () => void;
+    animatedStyle?: any;
 }) => {
-    const strokeWidth = small ? 4 : 8;
+    const strokeWidth = 8;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference - (progress * circumference);
 
     return (
-        <RN.TouchableOpacity
-            activeOpacity={0.7}
-            onPress={onPress}
-            disabled={!onPress}
-            style={[styles.timerCircleContainer, { width: size }]}
-        >
-            <RN.View style={[styles.outerCircle, { width: size, height: size, borderRadius: size / 2, borderWidth: strokeWidth }]}>
-                {/* Visual Circle */}
-                <Svg height={size} width={size} style={styles.progressRing}>
-                    <Defs>
-                        <SvgGradient id={`grad-${label}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <Stop offset="0%" stopColor={colors[0]} />
-                            <Stop offset="100%" stopColor={colors[1]} />
-                        </SvgGradient>
-                    </Defs>
-                    <Circle
-                        cx={size / 2}
-                        cy={size / 2}
-                        r={radius}
-                        stroke={`url(#grad-${label})`}
-                        strokeWidth={strokeWidth}
-                        fill="transparent"
-                        strokeDasharray={`${circumference} ${circumference}`}
-                        strokeDashoffset={strokeDashoffset}
-                        strokeLinecap="round"
-                    />
-                </Svg>
+        <RN.Animated.View style={[{ width: size, alignItems: 'center', justifyContent: 'center' }, animatedStyle]}>
+            <RN.TouchableOpacity
+                activeOpacity={0.7}
+                onPress={onPress}
+                disabled={!onPress}
+                style={[styles.timerCircleContainer, { width: size }]}
+            >
+                <RN.View style={[styles.outerCircle, { width: size, height: size, borderRadius: size / 2, borderWidth: strokeWidth }]}>
+                    <Svg height={size} width={size} style={styles.progressRing}>
+                        <Defs>
+                            <SvgGradient id={`grad-${label}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                <Stop offset="0%" stopColor={colors[0]} />
+                                <Stop offset="100%" stopColor={colors[1]} />
+                            </SvgGradient>
+                        </Defs>
+                        <Circle
+                            cx={size / 2}
+                            cy={size / 2}
+                            r={radius}
+                            stroke={`url(#grad-${label})`}
+                            strokeWidth={strokeWidth}
+                            fill="transparent"
+                            strokeDasharray={`${circumference} ${circumference}`}
+                            strokeDashoffset={strokeDashoffset}
+                            strokeLinecap="round"
+                        />
+                    </Svg>
 
-                <RN.View style={styles.innerCircle}>
-                    <RN.Text style={[styles.timerLabel, small && styles.timerLabelSmall]}>{label}</RN.Text>
-                    <RN.Text style={[styles.timerTime, small && styles.timerTimeSmall, { color: colors[1] }]}>{time}</RN.Text>
-                    <RN.Text style={[styles.remainingLabel, small && styles.remainingLabelSmall]}>{subLabel}</RN.Text>
+                    <RN.View style={styles.innerCircle}>
+                        <RN.Text style={styles.timerLabel}>{label}</RN.Text>
+                        <RN.Text style={[styles.timerTime, { color: colors[1] }]}>{time}</RN.Text>
+                        <RN.Text style={styles.remainingLabel}>{subLabel}</RN.Text>
+                    </RN.View>
                 </RN.View>
-            </RN.View>
-        </RN.TouchableOpacity>
+            </RN.TouchableOpacity>
+        </RN.Animated.View>
     );
 };
 
@@ -106,24 +109,42 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
     const [sahurTimeLeft, setSahurTimeLeft] = useState('--:--:--');
     const [sahurProgress, setSahurProgress] = useState(1);
 
-    // Timer Order State: [Left, Center, Right]
-    const [timerPositions, setTimerPositions] = useState<('next' | 'iftar' | 'sahur')[]>(['next', 'iftar', 'sahur']);
+    // Slider Logic
+    const scrollX = useRef(new RN.Animated.Value(0)).current;
+    const flatListRef = useRef<RN.FlatList>(null);
+    const ITEM_WIDTH = width * 0.5; // Back to stable original distance
+    const SPACING = (width - ITEM_WIDTH) / 2; // Perfect centering logic for large circle
+
+    const timerData = [
+        { id: 'next', label: nextPrayerName, time: nextPrayerTimeLeft, progress: nextPrayerProgress, colors: ['#10B981', '#059669'] },
+        { id: 'iftar', label: "İftar'a", time: iftarTimeLeft, progress: iftarProgress, colors: ['#34D399', '#10B981'] },
+        { id: 'sahur', label: "Sahur'a", time: sahurTimeLeft, progress: sahurProgress, colors: ['#10B981', '#059669'] },
+    ];
 
     const handleTimerPress = (index: number) => {
-        if (index === 1) return; // Ortadaki zaten odaklanmış durumda
-
-        // Animasyon ekle
-        RN.LayoutAnimation.configureNext(RN.LayoutAnimation.Presets.easeInEaseOut);
-
-        const newPositions = [...timerPositions];
-        const temp = newPositions[1];
-        newPositions[1] = newPositions[index];
-        newPositions[index] = temp;
-        setTimerPositions(newPositions);
+        flatListRef.current?.scrollToOffset({
+            offset: index * ITEM_WIDTH,
+            animated: true,
+        });
     };
+
+    // ... (keep useEffects/getDailyMenu/etc as is)
+
+    // ... (skipping to renderItem update inside return if needed, but I'll do it in one chunk if possible)
+
 
     const [isMealModalVisible, setIsMealModalVisible] = useState(false);
     const [isHadithModalVisible, setIsHadithModalVisible] = useState(false);
+
+    // Accordion State
+    const [isSahurOpen, setIsSahurOpen] = useState(false);
+    const [isIftarOpen, setIsIftarOpen] = useState(true);
+
+    const toggleSection = (section: 'sahur' | 'iftar') => {
+        RN.LayoutAnimation.configureNext(RN.LayoutAnimation.Presets.easeInEaseOut);
+        if (section === 'sahur') setIsSahurOpen(!isSahurOpen);
+        else setIsIftarOpen(!isIftarOpen);
+    };
 
     // Namaz vakitlerini çek
     useEffect(() => {
@@ -263,6 +284,31 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
         weekday: 'long'
     });
 
+    // Get Daily Menu
+    const getDailyMenu = () => {
+        const today = new Date().toISOString().split('T')[0];
+        const dayMenu = mealData.days.find(d => d.date === today);
+        // Fallback to first day if not found (for testing/off-season)
+        return dayMenu || mealData.days[0];
+    };
+
+    const dailyMenu = getDailyMenu();
+
+    // Get Daily Hadith
+    const getDailyHadith = () => {
+        // Simple modulo logic for demo/daily rotation
+        const today = new Date();
+        const start = new Date(today.getFullYear(), 0, 0);
+        const diff = (today as any) - (start as any);
+        const oneDay = 1000 * 60 * 60 * 24;
+        const dayOfYear = Math.floor(diff / oneDay);
+
+        const index = dayOfYear % hadithData.days.length;
+        return hadithData.days[index];
+    };
+
+    const dailyHadith = getDailyHadith();
+
     const hijriDate = prayerTimes?.hijriDate || '15 Ramazan, 1445';
 
     // Sizes
@@ -309,57 +355,93 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                         </RN.TouchableOpacity>
                     </RN.View>
 
-                    {/* 3-Timer Section */}
+                    {/* 3-Timer Slider Section */}
                     <RN.View style={styles.timerSection}>
-                        {timerPositions.map((type, index) => {
-                            const isCenter = index === 1;
-                            const size = isCenter ? centerSize : sideSize;
-                            const isSmall = !isCenter;
+                        <RN.Animated.FlatList
+                            ref={flatListRef}
+                            data={timerData}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            keyExtractor={(item) => item.id}
+                            snapToInterval={ITEM_WIDTH}
+                            decelerationRate="fast"
+                            contentContainerStyle={{
+                                paddingHorizontal: SPACING,
+                                alignItems: 'center'
+                            }}
+                            onScroll={RN.Animated.event(
+                                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                                { useNativeDriver: true }
+                            )}
+                            renderItem={({ item, index }) => {
+                                const inputRange = [
+                                    (index - 1) * ITEM_WIDTH,
+                                    index * ITEM_WIDTH,
+                                    (index + 1) * ITEM_WIDTH,
+                                ];
 
-                            if (type === 'next') {
+                                const scale = scrollX.interpolate({
+                                    inputRange,
+                                    outputRange: [0.35, 1, 0.35],
+                                    extrapolate: 'clamp',
+                                });
+
+                                const opacity = scrollX.interpolate({
+                                    inputRange,
+                                    outputRange: [0.3, 1, 0.3],
+                                    extrapolate: 'clamp',
+                                });
+
                                 return (
                                     <TimerCircle
-                                        key="next"
-                                        size={size}
-                                        label={nextPrayerName}
-                                        time={nextPrayerTimeLeft}
+                                        size={width * 0.48}
+                                        label={item.label}
+                                        time={item.time}
                                         subLabel="Kaldı"
-                                        colors={['#10B981', '#059669']}
-                                        progress={nextPrayerProgress}
-                                        small={isSmall}
+                                        colors={item.colors}
+                                        progress={item.progress}
+                                        animatedStyle={{ transform: [{ scale }], opacity }}
                                         onPress={() => handleTimerPress(index)}
                                     />
                                 );
-                            } else if (type === 'iftar') {
+                            }}
+                        />
+
+                        {/* Pagination Dots Indicator */}
+                        <RN.View style={styles.paginationContainer}>
+                            {timerData.map((_, index) => {
+                                const inputRange = [
+                                    (index - 1) * ITEM_WIDTH,
+                                    index * ITEM_WIDTH,
+                                    (index + 1) * ITEM_WIDTH,
+                                ];
+
+                                const dotScale = scrollX.interpolate({
+                                    inputRange,
+                                    outputRange: [1, 1.5, 1],
+                                    extrapolate: 'clamp',
+                                });
+
+                                const dotOpacity = scrollX.interpolate({
+                                    inputRange,
+                                    outputRange: [0.3, 1, 0.3],
+                                    extrapolate: 'clamp',
+                                });
+
                                 return (
-                                    <TimerCircle
-                                        key="iftar"
-                                        size={size}
-                                        label="İftar'a"
-                                        time={iftarTimeLeft}
-                                        subLabel="Kaldı"
-                                        colors={['#34D399', '#10B981']}
-                                        progress={iftarProgress}
-                                        small={isSmall}
-                                        onPress={() => handleTimerPress(index)}
+                                    <RN.Animated.View
+                                        key={index}
+                                        style={[
+                                            styles.paginationDot,
+                                            {
+                                                transform: [{ scale: dotScale }],
+                                                opacity: dotOpacity,
+                                            }
+                                        ]}
                                     />
                                 );
-                            } else {
-                                return (
-                                    <TimerCircle
-                                        key="sahur"
-                                        size={size}
-                                        label="Sahur'a"
-                                        time={sahurTimeLeft}
-                                        subLabel="Kaldı"
-                                        colors={['#10B981', '#059669']}
-                                        progress={sahurProgress}
-                                        small={isSmall}
-                                        onPress={() => handleTimerPress(index)}
-                                    />
-                                );
-                            }
-                        })}
+                            })}
+                        </RN.View>
                     </RN.View>
 
                     {/* Namaz Vakitleri Grid Section */}
@@ -437,41 +519,93 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                 </RN.ScrollView>
             </SafeAreaView>
 
-            {/* Meal Modal */}
             <RN.Modal
                 animationType="slide"
                 transparent={true}
                 visible={isMealModalVisible}
                 onRequestClose={() => setIsMealModalVisible(false)}
             >
-                <RN.TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setIsMealModalVisible(false)}
-                >
-                    <BlurView intensity={20} tint="dark" style={RN.StyleSheet.absoluteFill} />
-                    <RN.View style={styles.modalContent}>
+                <RN.View style={styles.modalOverlay}>
+                    {/* Backdrop */}
+                    <RN.Pressable
+                        style={RN.StyleSheet.absoluteFill}
+                        onPress={() => setIsMealModalVisible(false)}
+                    >
+                        <BlurView intensity={20} tint="dark" style={RN.StyleSheet.absoluteFill} />
+                    </RN.Pressable>
+
+                    {/* Modal Content */}
+                    <RN.View style={[styles.modalContent, { height: height * 0.7, maxHeight: height * 0.9 }]}>
                         <RN.View style={styles.modalHandle} />
                         <RN.Text style={styles.modalTitle}>Günün Yemek Menüsü</RN.Text>
-                        <RN.View style={styles.modalDivider} />
-                        <RN.View style={styles.mealItem}>
-                            <RN.Text style={styles.mealEmoji}>🥣</RN.Text>
-                            <RN.Text style={styles.mealName}>Süzme Mercimek Çorbası</RN.Text>
-                        </RN.View>
-                        <RN.View style={styles.mealItem}>
-                            <RN.Text style={styles.mealEmoji}>🥘</RN.Text>
-                            <RN.Text style={styles.mealName}>Pirinç Pilavı & İzmir Köfte</RN.Text>
-                        </RN.View>
-                        <RN.View style={styles.mealItem}>
-                            <RN.Text style={styles.mealEmoji}>🥗</RN.Text>
-                            <RN.Text style={styles.mealName}>Mevsim Salatası</RN.Text>
-                        </RN.View>
-                        <RN.View style={styles.mealItem}>
-                            <RN.Text style={styles.mealEmoji}>🧁</RN.Text>
-                            <RN.Text style={styles.mealName}>Şekerpare</RN.Text>
-                        </RN.View>
+                        <RN.Text style={styles.menuDate}>{dailyMenu.date === new Date().toISOString().split('T')[0] ? 'Bugünün Menüsü' : 'Örnek Menü (1. Gün)'}</RN.Text>
+
+                        <RN.ScrollView
+                            style={{ flex: 1, marginTop: 10 }}
+                            contentContainerStyle={{ paddingBottom: 60 }}
+                            showsVerticalScrollIndicator={true}
+                            bounces={true}
+                        >
+                            {/* Sahur Section */}
+                            <RN.View style={styles.menuSection}>
+                                <RN.TouchableOpacity
+                                    onPress={() => toggleSection('sahur')}
+                                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}
+                                >
+                                    <RN.Text style={[styles.menuSectionTitle, { marginBottom: 0 }]}>🌙 Sahur</RN.Text>
+                                    <RN.Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18 }}>{isSahurOpen ? '▼' : '▶'}</RN.Text>
+                                </RN.TouchableOpacity>
+                                <RN.View style={styles.modalDivider} />
+
+                                {isSahurOpen && (
+                                    dailyMenu.sahur.map((item, index) => (
+                                        <RN.View key={`sahur-${index}`} style={styles.mealItem}>
+                                            <RN.Text style={styles.mealEmoji}>🥗</RN.Text>
+                                            <RN.Text style={styles.mealName}>{item}</RN.Text>
+                                        </RN.View>
+                                    ))
+                                )}
+                            </RN.View>
+
+                            {/* Iftar Section */}
+                            <RN.View style={styles.menuSection}>
+                                <RN.TouchableOpacity
+                                    onPress={() => toggleSection('iftar')}
+                                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}
+                                >
+                                    <RN.Text style={[styles.menuSectionTitle, { marginBottom: 0 }]}>🍲 İftar</RN.Text>
+                                    <RN.Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18 }}>{isIftarOpen ? '▼' : '▶'}</RN.Text>
+                                </RN.TouchableOpacity>
+                                <RN.View style={styles.modalDivider} />
+
+                                {isIftarOpen && (
+                                    <>
+                                        <RN.View style={styles.mealInfoRow}>
+                                            <RN.Text style={styles.mealCalorie}>🔥 {dailyMenu.calorie} kcal</RN.Text>
+                                            <RN.Text style={styles.mealType}>
+                                                ✨ {dailyMenu.type ? (dailyMenu.type.charAt(0).toUpperCase() + dailyMenu.type.slice(1)) : 'Standart'}
+                                            </RN.Text>
+                                        </RN.View>
+
+                                        {dailyMenu.iftar && dailyMenu.iftar.length > 0 ? (
+                                            dailyMenu.iftar.map((item, index) => (
+                                                <RN.View key={`iftar-${index}`} style={styles.mealItem}>
+                                                    <RN.Text style={styles.mealEmoji}>🥘</RN.Text>
+                                                    <RN.Text style={styles.mealName}>{item}</RN.Text>
+                                                </RN.View>
+                                            ))
+                                        ) : (
+                                            <RN.Text style={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic', textAlign: 'center' }}>
+                                                İftar menüsü bulunamadı.
+                                            </RN.Text>
+                                        )}
+                                        <RN.View style={{ height: 40 }} />
+                                    </>
+                                )}
+                            </RN.View>
+                        </RN.ScrollView>
                     </RN.View>
-                </RN.TouchableOpacity>
+                </RN.View>
             </RN.Modal>
 
             {/* Hadith Modal */}
@@ -481,22 +615,47 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                 visible={isHadithModalVisible}
                 onRequestClose={() => setIsHadithModalVisible(false)}
             >
-                <RN.TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setIsHadithModalVisible(false)}
-                >
-                    <BlurView intensity={20} tint="dark" style={RN.StyleSheet.absoluteFill} />
-                    <RN.View style={styles.modalContent}>
+                <RN.View style={styles.modalOverlay}>
+                    {/* Backdrop */}
+                    <RN.Pressable
+                        style={RN.StyleSheet.absoluteFill}
+                        onPress={() => setIsHadithModalVisible(false)}
+                    >
+                        <BlurView intensity={20} tint="dark" style={RN.StyleSheet.absoluteFill} />
+                    </RN.Pressable>
+
+                    {/* Modal Content */}
+                    <RN.View style={[styles.modalContent, { height: height * 0.6, maxHeight: height * 0.8 }]}>
                         <RN.View style={styles.modalHandle} />
                         <RN.Text style={styles.modalTitle}>Günün Hadisi</RN.Text>
-                        <RN.View style={styles.modalDivider} />
-                        <RN.Text style={styles.hadithText}>
-                            "Kolaylaştırınız, zorlaştırmayınız; müjdeleyiniz, nefret ettirmeyiniz."
-                        </RN.Text>
-                        <RN.Text style={styles.hadithSource}>- Buhârî, İlm, 12</RN.Text>
+
+                        <RN.ScrollView
+                            style={{ flex: 1, marginTop: 10 }}
+                            contentContainerStyle={{ paddingBottom: 60 }}
+                            showsVerticalScrollIndicator={true}
+                            bounces={true}
+                        >
+                            <RN.View style={[styles.menuSection, { backgroundColor: 'rgba(255,255,255,0.05)', padding: 25, borderRadius: 24, width: '100%' }]}>
+                                <RN.Text style={[styles.hadithText, { marginTop: 0, fontSize: 18, lineHeight: 28 }]}>
+                                    "{dailyHadith.text}"
+                                </RN.Text>
+                                <RN.Text style={[styles.hadithSource, { marginTop: 20 }]}>- {dailyHadith.source}</RN.Text>
+                            </RN.View>
+
+                            {dailyHadith.tips && dailyHadith.tips.length > 0 && (
+                                <RN.View style={{ marginTop: 25 }}>
+                                    <RN.Text style={[styles.menuSectionTitle, { fontSize: 16, color: '#34D399', marginBottom: 15 }]}>✨ Günün Önerileri</RN.Text>
+                                    {dailyHadith.tips.map((tip, index) => (
+                                        <RN.View key={index} style={[styles.mealItem, { marginBottom: 12, padding: 15, backgroundColor: 'rgba(16, 185, 129, 0.08)' }]}>
+                                            <RN.Text style={{ color: '#34D399', fontSize: 18, marginRight: 12 }}>•</RN.Text>
+                                            <RN.Text style={[styles.mealName, { flex: 1, fontSize: 14, lineHeight: 20 }]}>{tip}</RN.Text>
+                                        </RN.View>
+                                    ))}
+                                </RN.View>
+                            )}
+                        </RN.ScrollView>
                     </RN.View>
-                </RN.TouchableOpacity>
+                </RN.View>
             </RN.Modal>
         </RN.View>
     );
@@ -554,15 +713,27 @@ const styles = RN.StyleSheet.create({
         fontSize: 11,
     },
     timerSection: {
-        flexDirection: 'row',
-        justifyContent: 'space-between', // Distribute evenly
-        alignItems: 'center', // Align centers vertically
         marginBottom: 25,
-        paddingHorizontal: 10, // Add some padding to avoid edge touch
+        height: 240, // Increase height to accommodate scaling
+        justifyContent: 'center',
     },
     timerCircleContainer: {
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    paginationContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 20,
+        marginTop: 10,
+    },
+    paginationDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#10B981',
+        marginHorizontal: 4,
     },
     outerCircle: {
         borderColor: 'rgba(255, 255, 255, 0.05)',
@@ -743,7 +914,37 @@ const styles = RN.StyleSheet.create({
     modalDivider: {
         height: 1,
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        marginBottom: 15,
+    },
+    menuDate: {
+        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 12,
+        textAlign: 'center',
+        marginTop: -10,
         marginBottom: 20,
+    },
+    menuSection: {
+        marginBottom: 20,
+    },
+    menuSectionTitle: {
+        color: '#34D399',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    mealInfoRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    mealCalorie: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 12,
+    },
+    mealType: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
     mealItem: {
         flexDirection: 'row',
