@@ -1,19 +1,208 @@
-# Mikat - Prayer Times App
+# 🕌 Mikat - Namaz Vakitleri Uygulaması
 
-Mikat, React Native ve Expo kullanılarak geliştirilmiş, modern ve kullanıcı dostu bir namaz vakitleri uygulamasıdır.
+Mikat, React Native ve Expo kullanılarak geliştirilmiş, modern ve kullanıcı dostu bir namaz vakitleri uygulamasıdır. Firebase ile entegre çalışan uygulama, Türkiye'deki tüm il ve ilçeler için güncel namaz vakitlerini sunar.
 
-## Özellikler
+## ✨ Özellikler
 
-- **Namaz Vakitleri:** Günlük ve aylık namaz vakitlerini takip edin.
-- **Şehir ve İlçe Seçimi:** Türkiye'deki tüm il ve ilçeler için vakit bilgisi.
-- **Günün Sözü/Hadisi:** Her gün yeni bir hadis veya anlamlı söz keşfedin.
-- **Yemek Önerisi:** İftar veya akşam yemeği için günlük menü önerileri.
-- **Modern Arayüz:** Sade, şık ve göz yormayan tasarım.
-- **Bildirimler:** İftar ve sahur vakitleri için hatırlatıcılar.
+### 🏠 Ana Ekran
+- **Gerçek Zamanlı Geri Sayım Sayaçları**: 
+  - Bir sonraki namaz vaktine kalan süre (saniye hassasiyetinde)
+  - İftar vaktine kalan süre
+  - Sahur vaktine kalan süre
+  - Kaydırılabilir timer carousel ile tüm sayaçlara kolay erişim
+- **Dairesel İlerleme Göstergeleri**: Vakitlere kalan süreyi görsel olarak gösteren animasyonlu progress ring'ler
+- **Günlük Namaz Vakitleri Grid'i**: Tüm vakitleri (İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı) tek bakışta görüntüleme
+- **Hicri ve Miladi Tarih**: Güncel tarih bilgisi her iki takvimde de gösterilir
+- **Günün Hadisi**: Her gün farklı bir hadis ve günlük öneriler
+- **Günlük Menü Önerileri**: Sahur ve iftar için detaylı yemek menüleri (kalori bilgisi dahil)
 
-## Kurulum
+### 📅 Aylık Vakitler Ekranı
+- Seçili ay için tüm günlerin namaz vakitlerini tablo formatında görüntüleme
+- Bugünün satırı özel olarak vurgulanır
+- Kaydırılabilir liste ile kolay navigasyon
+- Her gün için 6 vakit bilgisi (İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı)
 
-Projeyi yerel makinenizde çalıştırmak için aşağıdaki adımları takip edin:
+### ⚙️ Ayarlar Ekranı
+- **Konum Yönetimi**: 
+  - Türkiye'deki tüm il ve ilçeler arasından seçim
+  - Firebase'den gerçek zamanlı konum verileri
+- **Bildirim Tercihleri**:
+  - Tüm namaz vakitleri için bildirimler
+  - İftar bildirimi (özelleştirilebilir)
+  - Sahur bildirimi (özelleştirilebilir)
+- **Kullanıcı Profili**: İsim düzenleme ve kişiselleştirme
+- **Vakitleri Güncelle**: Manuel güncelleme seçeneği
+
+### 🎯 Onboarding Deneyimi
+- İlk kullanımda kullanıcı adı alma
+- Şehir ve ilçe seçimi
+- Kullanıcı dostu adım adım kurulum
+
+### 🔔 Bildirim Sistemi
+- Expo Notifications ile entegre push bildirimleri
+- Her namaz vakti için zamanlanmış bildirimler
+- Özelleştirilebilir bildirim tercihleri
+- Android için özel bildirim kanalı
+- Yüksek öncelikli bildirimler (HIGH priority)
+
+## 🏗️ Mimari ve Teknik Detaylar
+
+### Proje Yapısı
+```
+mikat/
+├── src/
+│   ├── components/          # Yeniden kullanılabilir UI bileşenleri
+│   │   ├── CustomTabBar.tsx      # Özel tasarım tab bar
+│   │   ├── PrimaryButton.tsx     # Ana buton bileşeni
+│   │   └── TextInputField.tsx    # Özel text input
+│   ├── config/              # Yapılandırma dosyaları
+│   │   └── firebase.ts           # Firebase konfigürasyonu
+│   ├── context/             # React Context API
+│   │   └── AppContext.tsx        # Global state yönetimi
+│   ├── data/                # Statik veri dosyaları
+│   │   ├── hadiths.json          # Günlük hadisler (365 gün)
+│   │   └── meals.json            # Ramazan menüleri (30 gün)
+│   ├── hooks/               # Custom React hooks
+│   │   ├── useCountdown.ts       # Geri sayım hook'u
+│   │   └── usePrayerTimes.ts     # Namaz vakitleri hook'u
+│   ├── navigation/          # React Navigation yapılandırması
+│   │   ├── MainTabNavigator.tsx  # Ana tab navigasyon
+│   │   └── OnboardingNavigator.tsx # Onboarding akışı
+│   ├── screens/             # Uygulama ekranları
+│   │   ├── HomeScreen.tsx        # Ana sayfa (41KB - kompleks UI)
+│   │   ├── PrayerTimesScreen.tsx # Aylık vakitler
+│   │   ├── SettingsScreen.tsx    # Ayarlar
+│   │   ├── OnboardingScreen.tsx  # İlk kurulum
+│   │   └── CitySelectionScreen.tsx # Şehir seçimi
+│   ├── services/            # İş mantığı servisleri
+│   │   ├── prayerTimesService.ts # Firebase Firestore işlemleri
+│   │   ├── notificationService.ts # Bildirim yönetimi
+│   │   ├── storageService.ts     # AsyncStorage işlemleri
+│   │   └── index.ts              # Servis exports
+│   ├── styles/              # Tema ve stil tanımlamaları
+│   │   └── theme.ts              # Renk paleti ve stil sabitleri
+│   └── types/               # TypeScript tip tanımlamaları
+│       └── index.ts              # Tüm interface'ler ve tipler
+├── assets/                  # Görseller ve ikonlar
+├── App.tsx                  # Ana uygulama bileşeni
+└── package.json             # Bağımlılıklar ve scriptler
+```
+
+### State Yönetimi (AppContext)
+Uygulama, React Context API kullanarak global state yönetimi sağlar:
+
+### Firebase Entegrasyonu
+
+#### Firestore Koleksiyonları
+1. **`states`**: İl bilgileri
+   - `id`: İl ID (örn: "500")
+   - `name`: İl adı
+   - `countryId`: Ülke ID
+
+2. **`districts`**: İlçe bilgileri
+   - `id`: İlçe ID
+   - `name`: İlçe adı
+   - `stateId`: Bağlı olduğu il ID
+
+3. **`prayerTimes`**: Namaz vakitleri
+   - Döküman ID formatı: `{districtId}_{year}` (örn: "16704_2026")
+   - Yapı:
+     ```typescript
+     {
+       districtId: string,
+       districtName: string,
+       months: {
+         "01": { // Ay (01-12)
+           1: { // Gün (1-31)
+             imsak: "05:30",
+             gunes: "07:00",
+             ogle: "12:30",
+             ikindi: "15:15",
+             aksam: "18:00",
+             yatsi: "19:30",
+             hijri: "15 Ramazan, 1445"
+           }
+         }
+       }
+     }
+     ```
+
+#### Firebase Servisleri
+- `getPrayerTimesForDate()`: Belirli bir tarih için vakitler
+- `getTodayPrayerTimes()`: Bugünün vakitleri
+- `getPrayerTimesForDateRange()`: Tarih aralığı için vakitler
+- `getMonthlyPrayerTimes()`: Aylık vakitler
+- `getAllStates()`: Tüm illeri getir
+- `getDistrictsForState()`: İle bağlı ilçeleri getir
+
+### Veri Saklama (AsyncStorage)
+Yerel veri saklama için `@react-native-async-storage/async-storage` kullanılır:
+
+- `@mikat_user_name`: Kullanıcı adı
+- `@mikat_selected_location`: Seçili konum (JSON)
+- `@mikat_onboarding_completed`: Onboarding tamamlanma durumu
+- `@mikat_iftar_notification`: İftar bildirimi tercihi
+- `@mikat_sahur_notification`: Sahur bildirimi tercihi
+- `@mikat_all_prayer_notification`: Tüm vakitler bildirimi
+
+### UI/UX Özellikleri
+
+#### Tasarım Sistemi
+- **Renk Paleti**: Yeşil tonları (#10B981, #059669, #047857) ile koyu tema
+- **Gradient Arka Planlar**: LinearGradient ile premium görünüm
+- **Blur Efektleri**: Modal ve overlay'lerde BlurView kullanımı
+- **Animasyonlar**: 
+  - React Native Animated API ile smooth geçişler
+  - Carousel timer'lar için scale ve opacity animasyonları
+  - LayoutAnimation ile accordion efektleri
+
+#### Responsive Tasarım
+- `Dimensions.get('window')` ile dinamik boyutlandırma
+- Tüm ekran boyutlarına uyumlu layout
+- SafeAreaView ile notch/status bar uyumluluğu
+
+## 📦 Teknoloji Stack'i
+
+### Core
+- **React Native**: 0.81.5
+- **React**: 19.1.0
+- **Expo**: ~54.0.33
+- **TypeScript**: ~5.9.2
+
+### Navigation
+- `@react-navigation/native`: ^7.1.28
+- `@react-navigation/bottom-tabs`: ^7.12.0
+- `@react-navigation/native-stack`: ^7.12.0
+- `react-native-screens`: ~4.16.0
+- `react-native-safe-area-context`: ^5.6.2
+
+### Firebase
+- `firebase`: ^12.9.0 (Firestore için)
+
+### UI Components
+- `expo-linear-gradient`: ~15.0.8 (Gradient arka planlar)
+- `expo-blur`: ~15.0.8 (Blur efektleri)
+- `react-native-svg`: 15.12.1 (SVG grafikler ve progress ring'ler)
+
+### Notifications
+- `expo-notifications`: ~0.32.16 (Push bildirimleri)
+
+### Storage
+- `@react-native-async-storage/async-storage`: ^2.2.0
+
+### Other
+- `expo-status-bar`: ~3.0.9
+
+## 🚀 Kurulum ve Çalıştırma
+
+### Gereksinimler
+- Node.js (v16 veya üzeri)
+- npm veya yarn
+- Expo CLI
+- iOS için: Xcode ve iOS Simulator
+- Android için: Android Studio ve Android Emulator
+
+### Adım Adım Kurulum
 
 1. **Depoyu klonlayın:**
    ```bash
@@ -26,18 +215,94 @@ Projeyi yerel makinenizde çalıştırmak için aşağıdaki adımları takip ed
    npm install
    ```
 
-3. **Uygulamayı başlatın:**
+3. **Firebase yapılandırması:**
+   - `src/config/firebase.ts` dosyasında Firebase credentials'ları kontrol edin
+   - Kendi Firebase projenizi kullanmak isterseniz bu dosyayı güncelleyin
+
+4. **Uygulamayı başlatın:**
    ```bash
+   npm start
+   # veya
    npx expo start
    ```
 
-## Teknolojiler
+5. **Platform seçimi:**
+   - iOS için: `i` tuşuna basın veya `npm run ios`
+   - Android için: `a` tuşuna basın veya `npm run android`
+   - Web için: `w` tuşuna basın veya `npm run web`
 
-- [React Native](https://reactnative.dev/)
-- [Expo](https://expo.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [React Navigation](https://reactnavigation.org/)
+### Development Scripts
+```bash
+npm start          # Expo development server'ı başlat
+npm run android    # Android emulator'da çalıştır
+npm run ios        # iOS simulator'da çalıştır
+npm run web        # Web browser'da çalıştır
+```
 
-## Lisans
+## 📱 Özellik Detayları
+
+### Timer Sistemi
+Ana ekrandaki timer sistemi 3 farklı sayaç içerir:
+1. **Sonraki Namaz**: Bir sonraki namaz vaktine kalan süre
+2. **İftar**: Akşam namazına (iftar) kalan süre
+3. **Sahur**: İmsak vaktine (sahur) kalan süre
+
+Her sayaç:
+- Saniye hassasiyetinde geri sayım yapar
+- Dairesel progress bar ile görsel feedback sağlar
+- Kaydırılabilir carousel içinde yer alır
+- Aktif sayaç büyütülür ve vurgulanır
+
+### Bildirim Mantığı
+- **Tüm Vakitler Açık**: 6 vakit için de bildirim gönderilir
+- **Tüm Vakitler Kapalı**: Sadece seçili vakitler (İftar/Sahur) bildirim alır
+- **Zamanlama**: Vakitler geçmişse bir sonraki güne zamanlanır
+- **Platform Desteği**: iOS ve Android için optimize edilmiş
+
+### Veri Senkronizasyonu
+- Uygulama açıldığında otomatik veri çekme
+- Konum değiştiğinde otomatik güncelleme
+- Offline desteği için AsyncStorage cache
+- Hata durumunda kullanıcı dostu mesajlar
+
+## 🎨 Tasarım Kararları
+
+### Renk Şeması
+- **Primary**: #10B981 (Emerald-500)
+- **Primary Dark**: #059669 (Emerald-600)
+- **Primary Darker**: #047857 (Emerald-700)
+- **Background**: Koyu yeşil gradientler (#064E3B → #022C22 → #000000)
+- **Text**: Beyaz ve yarı saydam beyaz tonları
+
+### Tipografi
+- **Başlıklar**: Bold, 24px
+- **Alt Başlıklar**: SemiBold, 16-18px
+- **Body Text**: Regular, 14-16px
+- **Küçük Metinler**: 11-13px
+
+### Spacing
+- **Padding**: 16-24px (container'lar için)
+- **Margin**: 10-20px (bileşenler arası)
+- **Border Radius**: 12-24px (modern, yumuşak köşeler)
+
+## 🔧 Geliştirme Notları
+
+### Performans Optimizasyonları
+- FlatList kullanımı ile verimli liste render'ı
+- React.memo ile gereksiz re-render'ların önlenmesi
+- useCallback ve useMemo hook'ları ile optimizasyon
+- Animated API ile native thread animasyonları
+
+### Bilinen Sınırlamalar
+- Sadece Türkiye lokasyonları desteklenir
+- Firebase bağlantısı gerektirir
+- Offline modda sınırlı işlevsellik
+
+## 📄 Lisans
 
 Bu proje MIT lisansı ile lisanslanmıştır.
+
+## 👨‍💻 Geliştirici
+
+**Derya Deniz Ballı**
+- GitHub: [@deryadenizballi](https://github.com/deryadenizballi)
