@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { PrayerTimes, PRAYER_NAMES } from '../types';
+import { PrayerTimes, PRAYER_NAMES, DayData } from '../types';
 
 // Bildirim handler ayarları (uygulama açıkken de bildirim göster)
 Notifications.setNotificationHandler({
@@ -132,6 +132,94 @@ export async function schedulePrayerNotifications(
         console.log(`✅ Bildirimler güncellendi (İftar: ${iftarEnabled}, Sahur: ${sahurEnabled})`);
     } catch (error) {
         console.error('Bildirim zamanlama hatası:', error);
+    }
+}
+
+/**
+ * Sadece bugünün bildirimlerini zamanla
+ * Background task tarafından kullanılır
+ */
+export async function scheduleTodayNotifications(
+    dayData: { date: string; prayerTimes: PrayerTimes },
+    cityName: string,
+    districtName: string
+): Promise<void> {
+    try {
+        // Önce mevcut bildirimleri iptal et
+        await cancelAllScheduledNotifications();
+
+        const hasPermission = await requestNotificationPermissions();
+        if (!hasPermission) {
+            console.log('⚠️ Bildirim izni yok');
+            return;
+        }
+
+        // Kullanıcı tercihlerini al
+        const [allEnabled, iftarEnabled, sahurEnabled] = await Promise.all([
+            import('../services/storageService').then(m => m.getAllPrayerNotification()),
+            import('../services/storageService').then(m => m.getIftarNotification()),
+            import('../services/storageService').then(m => m.getSahurNotification()),
+        ]);
+
+        console.log('📋 Bildirim tercihleri:', { allEnabled, iftarEnabled, sahurEnabled });
+
+        const now = new Date();
+        const prayerKeys: (keyof PrayerTimes)[] = ['imsak', 'gunes', 'ogle', 'ikindi', 'aksam', 'yatsi'];
+
+        let scheduledCount = 0;
+
+        for (const key of prayerKeys) {
+            // Bildirim mantığı:
+            // 1. 'Tüm Namaz Vakitleri' açıksa hepsi zamanlanır.
+            // 2. Kapalıysa sadece özel olarak seçilen İftar (Akşam) ve Sahur (İmsak) zamanlanır.
+            let shouldSchedule = false;
+
+            if (allEnabled) {
+                shouldSchedule = true;
+            } else {
+                if (key === 'aksam' && iftarEnabled) shouldSchedule = true;
+                if (key === 'imsak' && sahurEnabled) shouldSchedule = true;
+            }
+
+            if (!shouldSchedule) continue;
+
+            const timeStr = dayData.prayerTimes[key]; // "HH:MM" formatında
+            const [hours, minutes] = timeStr.split(':').map(Number);
+
+            // Bugünkü vakit zamanını oluştur
+            const prayerDate = new Date();
+            prayerDate.setHours(hours, minutes, 0, 0);
+
+            // Eğer vakit geçmişse zamanlamayı atla (yarın için değil, sadece bugün)
+            if (prayerDate <= now) {
+                console.log(`⏭️ ${PRAYER_NAMES[key]} vakti geçmiş, atlanıyor`);
+                continue;
+            }
+
+            const prayerName = PRAYER_NAMES[key];
+            const locationText = districtName ? `${districtName}, ${cityName}` : cityName;
+
+            await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: `🕌 ${prayerName} Vakti`,
+                    body: `${locationText} için ${prayerName} vakti girdi. (${timeStr})`,
+                    sound: 'default',
+                    priority: Notifications.AndroidNotificationPriority.HIGH,
+                    ...(Platform.OS === 'android' && { channelId: 'prayer-times' }),
+                },
+                trigger: {
+                    type: Notifications.SchedulableTriggerInputTypes.DATE,
+                    date: prayerDate,
+                },
+            });
+
+            scheduledCount++;
+            console.log(`📅 ${prayerName} bildirimi zamanlandı: ${timeStr}`);
+        }
+
+        console.log(`✅ Bugün için ${scheduledCount} bildirim zamanlandı`);
+    } catch (error) {
+        console.error('❌ Bugünün bildirimleri zamanlanamadı:', error);
     }
 }
 

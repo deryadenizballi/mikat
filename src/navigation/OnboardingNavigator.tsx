@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import CitySelectionScreen from '../screens/CitySelectionScreen';
 import MainTabNavigator from './MainTabNavigator';
+import { useApp } from '../context/AppContext';
 
 export type OnboardingStackParamList = {
     Onboarding: undefined;
@@ -13,6 +14,21 @@ export type OnboardingStackParamList = {
 const Stack = createNativeStackNavigator<OnboardingStackParamList>();
 
 const OnboardingNavigator: React.FC = () => {
+    const { onboardingCompleted, location, isInitialized } = useApp();
+
+    // Uygulama initialize olana kadar bekle
+    if (!isInitialized) {
+        return null;
+    }
+
+    // Onboarding tamamlanmış ve konum seçilmişse direkt ana uygulamayı göster
+    if (onboardingCompleted && location) {
+        console.log('✅ Onboarding tamamlanmış, ana uygulamaya yönlendiriliyor');
+        return <MainTabNavigator />;
+    }
+
+    // Onboarding tamamlanmamışsa onboarding flow'unu göster
+    console.log('ℹ️ Onboarding gösteriliyor');
     return (
         <Stack.Navigator
             initialRouteName="Onboarding"

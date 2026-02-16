@@ -26,9 +26,6 @@ const PrayerTimesScreen: React.FC = () => {
                 setLoading(true);
                 setError(null);
 
-                setLoading(true);
-                setError(null);
-
                 if (!location?.districtKey) {
                     setError('Lütfen önce şehir ve ilçe seçin.');
                     setLoading(false);
@@ -47,18 +44,39 @@ const PrayerTimesScreen: React.FC = () => {
                     expectedDocId: `${location.districtKey}_${year}`
                 });
 
-                const monthlyData = await getMonthlyPrayerTimes(
+                // Önce cache'i kontrol et
+                const { getCachedMonthlyPrayerTimes, saveCachedMonthlyPrayerTimes } = await import('../services/storageService');
+                const cachedMonthlyData = await getCachedMonthlyPrayerTimes(
                     location.districtKey,
                     year,
                     month
                 );
 
-                console.log('Monthly data received:', monthlyData.length, 'days');
+                let monthlyData;
 
-                if (monthlyData.length === 0) {
-                    setError(`${months[month - 1]} ${year} için veri bulunamadı. Lütfen Firebase'de bu ay için veri olduğundan emin olun.`);
-                    setLoading(false);
-                    return;
+                if (cachedMonthlyData && cachedMonthlyData.length > 0) {
+                    // Cache'den veri kullan
+                    console.log('✅ Aylık cache\'den veri kullanılıyor');
+                    monthlyData = cachedMonthlyData;
+                } else {
+                    // Cache yoksa Firebase'den çek
+                    console.log('🌐 Firebase\'den aylık veri çekiliyor...');
+                    monthlyData = await getMonthlyPrayerTimes(
+                        location.districtKey,
+                        year,
+                        month
+                    );
+
+                    console.log('Monthly data received:', monthlyData.length, 'days');
+
+                    if (monthlyData.length === 0) {
+                        setError(`${months[month - 1]} ${year} için veri bulunamadı. Lütfen Firebase'de bu ay için veri olduğundan emin olun.`);
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Başarılı veriyi cache'e kaydet
+                    await saveCachedMonthlyPrayerTimes(monthlyData, location.districtKey, year, month);
                 }
 
                 // Veriyi UI formatına dönüştür

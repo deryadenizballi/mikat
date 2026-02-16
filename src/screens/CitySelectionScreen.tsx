@@ -145,7 +145,7 @@ const SelectionModal = ({
 
 const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, route }) => {
     const { userName } = route.params;
-    const { setLocation } = useApp();
+    const { setLocation, completeOnboarding } = useApp();
 
     // Seçilen il ve ilçe
     const [selectedState, setSelectedState] = useState<StateItem | null>(null);
@@ -226,7 +226,14 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                     districtKey: selectedDistrict.id,
                     districtName: selectedDistrict.name,
                 };
+
+                // Konumu kaydet
                 await setLocation(location);
+
+                // Onboarding'i tamamla
+                await completeOnboarding();
+                console.log('✅ Onboarding tamamlandı ve kaydedildi');
+
                 navigation.navigate('MainApp', {
                     city: selectedState.name,
                     district: selectedDistrict.name

@@ -13,16 +13,29 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.puskevit.mikat",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.puskevit.mikat",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
+    "plugins": [
+      "expo-background-fetch",
+      "expo-task-manager",
+      "expo-notifications"
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }

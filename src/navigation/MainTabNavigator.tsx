@@ -15,7 +15,8 @@ export type MainTabParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const MainTabNavigator: React.FC<any> = ({ route }) => {
-    const { city, district } = route.params || { city: 'İstanbul', district: 'Kadıköy' };
+    // Route params opsiyonel - direkt render edildiğinde olmayabilir
+    const { city, district } = route?.params || { city: '', district: '' };
 
     return (
         <Tab.Navigator

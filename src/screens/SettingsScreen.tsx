@@ -219,10 +219,11 @@ const SettingsScreen: React.FC = () => {
             await saveSahurNotification(true);
         }
 
-        // Bildirimleri anında güncelle
+        // Bildirimleri anında güncelle (günlük strateji)
         if (todayPrayerTimes && currentLocation) {
-            await schedulePrayerNotifications(
-                todayPrayerTimes,
+            const { scheduleTodayNotifications } = await import('../services/notificationService');
+            await scheduleTodayNotifications(
+                { date: new Date().toISOString().split('T')[0], prayerTimes: todayPrayerTimes },
                 currentLocation.cityName,
                 currentLocation.districtName
             );
@@ -239,10 +240,11 @@ const SettingsScreen: React.FC = () => {
             await saveAllPrayerNotification(false);
         }
 
-        // Bildirimleri anında güncelle
+        // Bildirimleri anında güncelle (günlük strateji)
         if (todayPrayerTimes && currentLocation) {
-            await schedulePrayerNotifications(
-                todayPrayerTimes,
+            const { scheduleTodayNotifications } = await import('../services/notificationService');
+            await scheduleTodayNotifications(
+                { date: new Date().toISOString().split('T')[0], prayerTimes: todayPrayerTimes },
                 currentLocation.cityName,
                 currentLocation.districtName
             );
@@ -259,10 +261,11 @@ const SettingsScreen: React.FC = () => {
             await saveAllPrayerNotification(false);
         }
 
-        // Bildirimleri anında güncelle
+        // Bildirimleri anında güncelle (günlük strateji)
         if (todayPrayerTimes && currentLocation) {
-            await schedulePrayerNotifications(
-                todayPrayerTimes,
+            const { scheduleTodayNotifications } = await import('../services/notificationService');
+            await scheduleTodayNotifications(
+                { date: new Date().toISOString().split('T')[0], prayerTimes: todayPrayerTimes },
                 currentLocation.cityName,
                 currentLocation.districtName
             );
