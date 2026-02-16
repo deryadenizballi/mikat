@@ -36,14 +36,15 @@ Mikat, React Native ve Expo kullanılarak geliştirilmiş, modern ve kullanıcı
 ### 🎯 Onboarding Deneyimi
 - İlk kullanımda kullanıcı adı alma
 - Şehir ve ilçe seçimi
-- Kullanıcı dostu adım adım kurulum
+- **Conditional Routing**: Onboarding tamamlanmışsa doğrudan ana ekrana yönlendirme
+- **Kalıcı Durum**: Onboarding durumu AsyncStorage'da güvenli bir şekilde saklanır
 
 ### 🔔 Bildirim Sistemi
 - Expo Notifications ile entegre push bildirimleri
-- Her namaz vakti için zamanlanmış bildirimler
-- Özelleştirilebilir bildirim tercihleri
-- Android için özel bildirim kanalı
-- Yüksek öncelikli bildirimler (HIGH priority)
+- **Günlük Bildirim Planlaması**: Her gün sadece o güne ait namaz vakitleri planlanır (tercihlere göre)
+- **Background Task Entegrasyonu**: Uygulama kapalıyken bile arka planda bildirimler güncellenir
+- Özelleştirilebilir bildirim tercihleri (Tümü, İftar, Sahur)
+- Android için özel bildirim kanalı ve iOS için HIGH priority desteği
 
 ## 🏗️ Mimari ve Teknik Detaylar
 
@@ -78,6 +79,7 @@ mikat/
 │   │   ├── prayerTimesService.ts # Firebase Firestore işlemleri
 │   │   ├── notificationService.ts # Bildirim yönetimi
 │   │   ├── storageService.ts     # AsyncStorage işlemleri
+│   │   ├── backgroundTaskService.ts # Arka plan görev yönetimi
 │   │   └── index.ts              # Servis exports
 │   ├── styles/              # Tema ve stil tanımlamaları
 │   │   └── theme.ts              # Renk paleti ve stil sabitleri
@@ -144,6 +146,14 @@ Yerel veri saklama için `@react-native-async-storage/async-storage` kullanılı
 - `@mikat_iftar_notification`: İftar bildirimi tercihi
 - `@mikat_sahur_notification`: Sahur bildirimi tercihi
 - `@mikat_all_prayer_notification`: Tüm vakitler bildirimi
+- `CACHED_MONTHLY_PRAYER_TIMES`: Aylık vakit verileri önbelleği (Tekil Cache Stratejisi)
+
+### 🌙 Background Tasks (Arka Plan Görevleri)
+Uygulama, `expo-background-fetch` ve `expo-task-manager` kullanarak arka planda çalışır:
+- **01:00 Güncellemesi**: Her gece saat 01:00'da otomatik tetiklenir.
+- **Cache Kontrolü**: Yeni aya geçilip geçilmediğini kontrol eder.
+- **Otomatik Veri Çekme**: Gerekli durumlarda Firebase'den güncel aylık veriyi çeker.
+- **Bildirim Yenileme**: Kullanıcı tercihlerine göre bugünün bildirimlerini yeniden planlar.
 
 ### UI/UX Özellikleri
 
@@ -187,8 +197,10 @@ Yerel veri saklama için `@react-native-async-storage/async-storage` kullanılı
 ### Notifications
 - `expo-notifications`: ~0.32.16 (Push bildirimleri)
 
-### Storage
+### Storage & Background
 - `@react-native-async-storage/async-storage`: ^2.2.0
+- `expo-background-fetch`: ~14.0.9
+- `expo-task-manager`: ~13.0.3
 
 ### Other
 - `expo-status-bar`: ~3.0.9
@@ -259,11 +271,11 @@ Her sayaç:
 - **Zamanlama**: Vakitler geçmişse bir sonraki güne zamanlanır
 - **Platform Desteği**: iOS ve Android için optimize edilmiş
 
-### Veri Senkronizasyonu
-- Uygulama açıldığında otomatik veri çekme
-- Konum değiştiğinde otomatik güncelleme
-- Offline desteği için AsyncStorage cache
-- Hata durumunda kullanıcı dostu mesajlar
+### Veri Senkronizasyonu ve Cache Stratejisi
+- **Unified Monthly Cache**: Uygulama, hem günlük görünüm hem aylık liste için tek bir aylık cache kullanır. Bu sayede Firebase okuma maliyetleri %90'a varan oranda düşürülmüştür.
+- **Offline-First**: Veri bir kez cihazda cache'lendiğinde, ay sonuna kadar internet bağlantısı gerekmez.
+- **Otomatik Güncelleme**: Arka plan görevleri sayesinde kullanıcı uygulamayı açmasa bile veriler ay sonunda güncellenir.
+- **Hata Yönetimi**: Şebeke hataları durumunda mevcut cache verileri kullanılmaya devam edilir.
 
 ## 🎨 Tasarım Kararları
 
