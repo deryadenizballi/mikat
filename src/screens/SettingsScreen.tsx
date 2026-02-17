@@ -36,7 +36,7 @@ interface DistrictItem {
 
 import { useApp } from '../context/AppContext';
 
-const SettingItem = ({ icon, title, subtitle, onPress, isLast }: any) => (
+const SettingItem = ({ icon, title, subtitle, onPress, isLast, rightIcon = '›' }: any) => (
     <RN.TouchableOpacity style={[styles.item, isLast && { borderBottomWidth: 0 }]} onPress={onPress}>
         <RN.View style={styles.itemLeft}>
             <RN.View style={styles.iconContainer}>
@@ -47,7 +47,7 @@ const SettingItem = ({ icon, title, subtitle, onPress, isLast }: any) => (
                 {subtitle && <RN.Text style={styles.itemSubtitle}>{subtitle}</RN.Text>}
             </RN.View>
         </RN.View>
-        <RN.Text style={styles.chevron}>›</RN.Text>
+        <RN.Text style={[styles.chevron, rightIcon === '✅' && { color: '#34D399', fontSize: 20 }]}>{rightIcon}</RN.Text>
     </RN.TouchableOpacity>
 );
 
@@ -108,13 +108,33 @@ const SelectionModal = ({
 );
 
 const SettingsScreen: React.FC = () => {
-    const { location: currentLocation, setLocation, todayPrayerTimes } = useApp();
+    const {
+        location: currentLocation,
+        setLocation,
+        userName: currentUserName,
+        setUserName: contextSetUserName,
+        refreshPrayerTimes,
+        todayPrayerTimes
+    } = useApp();
     const [userName, setUserName] = useState('');
     const [isEditingName, setIsEditingName] = useState(false);
     const [allNotification, setAllNotification] = useState(true);
+    const [isNotificationLoading, setIsNotificationLoading] = useState(true);
+    const [updateSuccess, setUpdateSuccess] = useState(false);
     const [iftarNotification, setIftarNotification] = useState(true);
     const [sahurNotification, setSahurNotification] = useState(true);
 
+    const handleUpdateTimes = async () => {
+        try {
+            await refreshPrayerTimes(true);
+            setUpdateSuccess(true);
+            setTimeout(() => {
+                setUpdateSuccess(false);
+            }, 3000);
+        } catch (error) {
+            console.error('Manual update error:', error);
+        }
+    };
 
 
     // Firebase verileri
@@ -401,6 +421,8 @@ const SettingsScreen: React.FC = () => {
                             icon="🔄"
                             title="Vakitleri Güncelle"
                             isLast={true}
+                            onPress={handleUpdateTimes}
+                            rightIcon={updateSuccess ? '✅' : '›'}
                         />
                     </RN.View>
 

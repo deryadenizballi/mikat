@@ -30,7 +30,7 @@ interface AppContextType {
     todayData: DayData | null;
     prayerTimesLoading: boolean;
     prayerTimesError: Error | null;
-    refreshPrayerTimes: () => Promise<void>;
+    refreshPrayerTimes: (force?: boolean) => Promise<void>;
 
     // Onboarding
     onboardingCompleted: boolean;
@@ -116,7 +116,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
 
     // Namaz vakitlerini yenile
-    const refreshPrayerTimes = async () => {
+    const refreshPrayerTimes = async (force = false) => {
         if (!location || !location.districtKey) return;
 
         setPrayerTimesLoading(true);
@@ -128,23 +128,26 @@ export function AppProvider({ children }: AppProviderProps) {
             const month = now.getMonth() + 1; // 1-indexed
             const today = now.toISOString().split('T')[0]; // "2026-02-16"
 
-            // Önce aylık cache'i kontrol et
-            console.log('🔍 Aylık cache kontrol ediliyor...');
-            const cachedMonthlyData = await getCachedMonthlyPrayerTimes(
-                location.districtKey,
-                year,
-                month
-            );
+            let monthlyData = null;
 
-            let monthlyData;
+            // Eğer force değilse önce aylık cache'i kontrol et
+            if (!force) {
+                console.log('🔍 Aylık cache kontrol ediliyor...');
+                const cachedMonthlyData = await getCachedMonthlyPrayerTimes(
+                    location.districtKey,
+                    year,
+                    month
+                );
 
-            if (cachedMonthlyData && cachedMonthlyData.length > 0) {
-                // Aylık cache'den veri bulundu
-                console.log('✅ Aylık cache\'den veri kullanılıyor');
-                monthlyData = cachedMonthlyData;
-            } else {
-                // Cache yoksa Firebase'den aylık veriyi çek
-                console.log('🌐 Firebase\'den aylık veri çekiliyor...');
+                if (cachedMonthlyData && cachedMonthlyData.length > 0) {
+                    console.log('✅ Aylık cache\'den veri bulundu');
+                    monthlyData = cachedMonthlyData;
+                }
+            }
+
+            if (!monthlyData) {
+                // Cache yoksa veya force refresh istenmişse Firebase'den aylık veriyi çek
+                console.log(force ? '🔄 Zorunlu yenileme: Firebase\'den veri çekiliyor...' : '🌐 Firebase\'den aylık veri çekiliyor...');
                 const { getMonthlyPrayerTimes } = await import('../services/prayerTimesService');
                 monthlyData = await getMonthlyPrayerTimes(
                     location.districtKey,

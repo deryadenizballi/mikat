@@ -333,7 +333,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <RN.ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                    {/* Date Navigation Card */}
+                    {/* Date Card */}
                     <RN.View style={styles.dateCard}>
                         <LinearGradient
                             colors={['rgba(16, 185, 129, 0.12)', 'rgba(5, 150, 105, 0.12)']}
@@ -341,18 +341,10 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                         />
-                        <RN.TouchableOpacity style={styles.arrowBtn}>
-                            <RN.Text style={styles.arrowText}>‹</RN.Text>
-                        </RN.TouchableOpacity>
-
                         <RN.View style={styles.dateInfo}>
                             <RN.Text style={styles.hijriDate}>{hijriDate}</RN.Text>
                             <RN.Text style={styles.gregorianDate}>{formattedDate}</RN.Text>
                         </RN.View>
-
-                        <RN.TouchableOpacity style={styles.arrowBtn}>
-                            <RN.Text style={styles.arrowText}>›</RN.Text>
-                        </RN.TouchableOpacity>
                     </RN.View>
 
                     {/* 3-Timer Slider Section */}
@@ -681,7 +673,7 @@ const styles = RN.StyleSheet.create({
         overflow: 'hidden',
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         paddingHorizontal: 12,
         backgroundColor: 'rgba(6, 78, 59, 0.3)',
         borderWidth: 1,

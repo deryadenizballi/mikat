@@ -20,6 +20,7 @@ const MainTabNavigator: React.FC<any> = ({ route }) => {
 
     return (
         <Tab.Navigator
+            initialRouteName="Home"
             tabBar={(props) => <CustomTabBar {...props} />}
             screenOptions={{
                 headerShown: false,

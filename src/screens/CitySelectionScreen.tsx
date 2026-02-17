@@ -212,9 +212,6 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
         setDistrictModalVisible(false);
     };
 
-    const handleLocateMe = () => {
-        console.log('Locate Me button pressed');
-    };
 
     const handleSaveLocation = async () => {
         if (selectedState && selectedDistrict) {
@@ -310,15 +307,6 @@ const CitySelectionScreen: React.FC<CitySelectionScreenProps> = ({ navigation, r
                         />
                     </View>
 
-                    {/* Konumumu Otomatik Bul */}
-                    <TouchableOpacity
-                        style={styles.locateButton}
-                        onPress={handleLocateMe}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.locateButtonIcon}>📍</Text>
-                        <Text style={styles.locateButtonText}>Konumumu Otomatik Bul</Text>
-                    </TouchableOpacity>
 
                     {/* Hızlı İl Seçimi (İlk 4) */}
                     {!statesLoading && quickStates.length > 0 && (
@@ -484,26 +472,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: 'rgba(255, 255, 255, 0.7)',
         marginLeft: 10,
-    },
-    locateButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingVertical: 14,
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-        marginBottom: 24,
-    },
-    locateButtonIcon: {
-        fontSize: 18,
-        marginRight: 8,
-    },
-    locateButtonText: {
-        fontSize: 15,
-        color: '#FFFFFF',
-        fontWeight: '500',
     },
     quickSelectSection: {
         marginTop: 16,
