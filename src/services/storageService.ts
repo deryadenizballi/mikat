@@ -9,6 +9,9 @@ const STORAGE_KEYS = {
     SAHUR_NOTIFICATION: '@mikat_sahur_notification',
     ONBOARDING_COMPLETED: '@mikat_onboarding_completed',
     CACHED_MONTHLY_PRAYER_TIMES: '@mikat_cached_monthly_prayer_times',
+    INSTALL_DATE: '@mikat_install_date',
+    CACHED_STATES: '@mikat_cached_states',
+    CACHED_DISTRICTS: '@mikat_cached_districts',
 };
 
 // ==================== Kullanıcı Adı ====================
@@ -129,6 +132,37 @@ export async function isOnboardingCompleted(): Promise<boolean> {
     } catch (error) {
         console.error('isOnboardingCompleted error:', error);
         return false;
+    }
+}
+
+// ==================== İlk Kurulum Tarihi ====================
+
+/**
+ * Uygulamanın ilk kurulum tarihini kaydet (sadece ilk seferde kaydeder)
+ */
+export async function saveInstallDate(): Promise<void> {
+    try {
+        const existing = await AsyncStorage.getItem(STORAGE_KEYS.INSTALL_DATE);
+        if (!existing) {
+            const today = new Date().toISOString().split('T')[0];
+            await AsyncStorage.setItem(STORAGE_KEYS.INSTALL_DATE, today);
+            console.log('✅ İlk kurulum tarihi kaydedildi:', today);
+        }
+    } catch (error) {
+        console.error('saveInstallDate error:', error);
+    }
+}
+
+/**
+ * İlk kurulum tarihini getir
+ * @returns ISO tarih stringi (YYYY-MM-DD) veya null
+ */
+export async function getInstallDate(): Promise<string | null> {
+    try {
+        return await AsyncStorage.getItem(STORAGE_KEYS.INSTALL_DATE);
+    } catch (error) {
+        console.error('getInstallDate error:', error);
+        return null;
     }
 }
 
@@ -255,5 +289,87 @@ export async function clearAllData(): Promise<void> {
     } catch (error) {
         console.error('clearAllData error:', error);
         throw error;
+    }
+}
+
+// ==================== İl/İlçe Cache ====================
+
+const CACHE_MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 gün (il/ilçe verileri nadiren değişir)
+
+/**
+ * İl listesini cache'e kaydet
+ */
+export async function saveCachedStates(states: any[]): Promise<void> {
+    try {
+        const cacheData = {
+            data: states,
+            timestamp: Date.now(),
+        };
+        await AsyncStorage.setItem(STORAGE_KEYS.CACHED_STATES, JSON.stringify(cacheData));
+    } catch (error) {
+        console.error('saveCachedStates error:', error);
+    }
+}
+
+/**
+ * Cache'lenmiş il listesini getir
+ */
+export async function getCachedStates(): Promise<any[] | null> {
+    try {
+        const cached = await AsyncStorage.getItem(STORAGE_KEYS.CACHED_STATES);
+        if (!cached) return null;
+
+        const cacheData = JSON.parse(cached);
+        if (Date.now() - cacheData.timestamp > CACHE_MAX_AGE) {
+            await AsyncStorage.removeItem(STORAGE_KEYS.CACHED_STATES);
+            return null;
+        }
+
+        return cacheData.data;
+    } catch (error) {
+        console.error('getCachedStates error:', error);
+        return null;
+    }
+}
+
+/**
+ * Belirli bir ilin ilçe listesini cache'e kaydet
+ */
+export async function saveCachedDistricts(stateId: string, districts: any[]): Promise<void> {
+    try {
+        const cached = await AsyncStorage.getItem(STORAGE_KEYS.CACHED_DISTRICTS);
+        const allDistricts = cached ? JSON.parse(cached) : {};
+        allDistricts[stateId] = {
+            data: districts,
+            timestamp: Date.now(),
+        };
+        await AsyncStorage.setItem(STORAGE_KEYS.CACHED_DISTRICTS, JSON.stringify(allDistricts));
+    } catch (error) {
+        console.error('saveCachedDistricts error:', error);
+    }
+}
+
+/**
+ * Cache'lenmiş ilçe listesini getir
+ */
+export async function getCachedDistricts(stateId: string): Promise<any[] | null> {
+    try {
+        const cached = await AsyncStorage.getItem(STORAGE_KEYS.CACHED_DISTRICTS);
+        if (!cached) return null;
+
+        const allDistricts = JSON.parse(cached);
+        const stateDistricts = allDistricts[stateId];
+        if (!stateDistricts) return null;
+
+        if (Date.now() - stateDistricts.timestamp > CACHE_MAX_AGE) {
+            delete allDistricts[stateId];
+            await AsyncStorage.setItem(STORAGE_KEYS.CACHED_DISTRICTS, JSON.stringify(allDistricts));
+            return null;
+        }
+
+        return stateDistricts.data;
+    } catch (error) {
+        console.error('getCachedDistricts error:', error);
+        return null;
     }
 }

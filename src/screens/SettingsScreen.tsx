@@ -18,6 +18,10 @@ import {
     saveAllPrayerNotification,
     getUserName,
     saveUserName,
+    getCachedStates,
+    saveCachedStates,
+    getCachedDistricts,
+    saveCachedDistricts,
 } from '../services/storageService';
 import { schedulePrayerNotifications } from '../services/notificationService';
 import { SelectedLocation } from '../types';
@@ -146,40 +150,46 @@ const SettingsScreen: React.FC = () => {
     const [districtModalVisible, setDistrictModalVisible] = useState(false);
 
     // Loading
-    const [loading, setLoading] = useState(true);
+    const [statesLoading, setStatesLoading] = useState(true);
 
     // İlk yükleme
     useEffect(() => {
         async function initialize() {
             try {
-                // Kullanıcı adını yükle
-                const name = await getUserName();
+                // AsyncStorage okumalarını paralel çalıştır (hızlı, <50ms)
+                const [name, all, iftar, sahur] = await Promise.all([
+                    getUserName(),
+                    getAllPrayerNotification(),
+                    getIftarNotification(),
+                    getSahurNotification(),
+                ]);
+
                 if (name) setUserName(name);
-
-
-
-                // Bildirim ayarlarını yükle
-                const all = await getAllPrayerNotification();
-                const iftar = await getIftarNotification();
-                const sahur = await getSahurNotification();
-
                 setAllNotification(all);
                 setIftarNotification(iftar);
                 setSahurNotification(sahur);
 
-                // İlleri yükle
-                const fetchedStates = await getAllStates();
+                // İlleri önce cache'den dene, yoksa Firebase'den çek
+                let fetchedStates = await getCachedStates();
+                if (!fetchedStates) {
+                    fetchedStates = await getAllStates();
+                    await saveCachedStates(fetchedStates);
+                }
                 setStates(fetchedStates);
 
-                // Eğer il seçiliyse ilçeleri de yükle
+                // Eğer il seçiliyse ilçeleri de cache'den veya Firebase'den yükle
                 if (currentLocation?.cityPlateCode) {
-                    const fetchedDistricts = await getDistrictsForState(currentLocation.cityPlateCode);
+                    let fetchedDistricts = await getCachedDistricts(currentLocation.cityPlateCode);
+                    if (!fetchedDistricts) {
+                        fetchedDistricts = await getDistrictsForState(currentLocation.cityPlateCode);
+                        await saveCachedDistricts(currentLocation.cityPlateCode, fetchedDistricts);
+                    }
                     setDistricts(fetchedDistricts);
                 }
             } catch (error) {
                 console.error('Settings initialize error:', error);
             } finally {
-                setLoading(false);
+                setStatesLoading(false);
             }
         }
         initialize();
@@ -194,8 +204,12 @@ const SettingsScreen: React.FC = () => {
     const handleStateSelect = async (state: StateItem) => {
         setStateModalVisible(false);
 
-        // İlçeleri yükle
-        const fetchedDistricts = await getDistrictsForState(state.id);
+        // İlçeleri önce cache'den dene, yoksa Firebase'den çek
+        let fetchedDistricts = await getCachedDistricts(state.id);
+        if (!fetchedDistricts) {
+            fetchedDistricts = await getDistrictsForState(state.id);
+            await saveCachedDistricts(state.id, fetchedDistricts);
+        }
         setDistricts(fetchedDistricts);
 
         // Yeni konum (ilçe henüz seçilmedi)
@@ -294,23 +308,6 @@ const SettingsScreen: React.FC = () => {
 
 
 
-    if (loading) {
-        return (
-            <RN.View style={styles.container}>
-                <LinearGradient
-                    colors={['#0F172A', '#0B121C', '#05080D']}
-                    style={RN.StyleSheet.absoluteFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                />
-                <SafeAreaView style={styles.safeArea} edges={['top']}>
-                    <RN.View style={styles.loadingContainer}>
-                        <RN.ActivityIndicator size="large" color="#34D399" />
-                    </RN.View>
-                </SafeAreaView>
-            </RN.View>
-        );
-    }
 
     return (
         <RN.View style={styles.container}>
@@ -392,7 +389,13 @@ const SettingsScreen: React.FC = () => {
                             icon="📍"
                             title="İl Seçimi"
                             subtitle={currentLocation?.cityName || 'Seçilmedi'}
-                            onPress={() => setStateModalVisible(true)}
+                            onPress={() => {
+                                if (statesLoading) {
+                                    RN.Alert.alert('Bilgi', 'İl listesi yükleniyor, lütfen bekleyin...');
+                                } else {
+                                    setStateModalVisible(true);
+                                }
+                            }}
                         />
                         <SettingItem
                             icon="🏢"

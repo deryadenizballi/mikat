@@ -8,7 +8,7 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Text as SvgText
 import { MainTabParamList } from '../navigation/MainTabNavigator';
 import { Colors } from '../styles/theme';
 import { useApp } from '../context/AppContext';
-import { getTodayPrayerTimes } from '../services/prayerTimesService';
+import { saveInstallDate, getInstallDate } from '../services/storageService';
 import { DayData } from '../types';
 import mealData from '../data/meals.json';
 import hadithData from '../data/hadiths.json';
@@ -92,9 +92,7 @@ const TimerCircle = ({
 };
 
 const HomeScreen = ({ route }: HomeScreenProps) => {
-    const { location } = useApp();
-    const [prayerTimes, setPrayerTimes] = useState<DayData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { location, todayData: prayerTimes, prayerTimesLoading: loading } = useApp();
 
     // Timers
     const [nextPrayerTimeLeft, setNextPrayerTimeLeft] = useState('--:--:--');
@@ -112,8 +110,8 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
     // Slider Logic
     const scrollX = useRef(new RN.Animated.Value(0)).current;
     const flatListRef = useRef<RN.FlatList>(null);
-    const ITEM_WIDTH = width * 0.5; // Back to stable original distance
-    const SPACING = (width - ITEM_WIDTH) / 2; // Perfect centering logic for large circle
+    const ITEM_WIDTH = width * 0.48; // Circle boyutuyla aynı
+    const SPACING = (width - ITEM_WIDTH) / 2; // Tam ortalama için
 
     const timerData = [
         { id: 'next', label: nextPrayerName, time: nextPrayerTimeLeft, progress: nextPrayerProgress, colors: ['#10B981', '#059669'] },
@@ -146,23 +144,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
         else setIsIftarOpen(!isIftarOpen);
     };
 
-    // Namaz vakitlerini çek
-    useEffect(() => {
-        async function fetchTimes() {
-            if (location?.districtKey) {
-                try {
-                    setLoading(true);
-                    const data = await getTodayPrayerTimes(location.districtKey);
-                    setPrayerTimes(data);
-                } catch (error) {
-                    console.error('Namaz vakitleri çekilemedi:', error);
-                } finally {
-                    setLoading(false);
-                }
-            }
-        }
-        fetchTimes();
-    }, [location]);
+
 
     // Timer Logic
     useEffect(() => {
@@ -284,15 +266,28 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
         weekday: 'long'
     });
 
-    // Get Daily Menu
-    const getDailyMenu = () => {
-        const today = new Date().toISOString().split('T')[0];
-        const dayMenu = mealData.days.find(d => d.date === today);
-        // Fallback to first day if not found (for testing/off-season)
-        return dayMenu || mealData.days[0];
-    };
+    // Get Daily Menu - Kurulum tarihinden itibaren sırayla, liste bitince başa döner
+    const [dailyMenu, setDailyMenu] = useState(mealData.days[0]);
 
-    const dailyMenu = getDailyMenu();
+    useEffect(() => {
+        async function loadDailyMenu() {
+            // İlk kurulum tarihini kaydet (zaten varsa tekrar kaydetmez)
+            await saveInstallDate();
+            const installDate = await getInstallDate();
+
+            if (installDate) {
+                const install = new Date(installDate);
+                const today = new Date();
+                // Gün farkını hesapla
+                const diffTime = today.getTime() - install.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                // Modulo ile döngüsel index (liste bitince başa döner)
+                const index = diffDays % mealData.days.length;
+                setDailyMenu(mealData.days[index]);
+            }
+        }
+        loadDailyMenu();
+    }, []);
 
     // Get Daily Hadith
     const getDailyHadith = () => {
@@ -530,7 +525,7 @@ const HomeScreen = ({ route }: HomeScreenProps) => {
                     <RN.View style={[styles.modalContent, { height: height * 0.7, maxHeight: height * 0.9 }]}>
                         <RN.View style={styles.modalHandle} />
                         <RN.Text style={styles.modalTitle}>Günün Yemek Menüsü</RN.Text>
-                        <RN.Text style={styles.menuDate}>{dailyMenu.date === new Date().toISOString().split('T')[0] ? 'Bugünün Menüsü' : 'Örnek Menü (1. Gün)'}</RN.Text>
+                        <RN.Text style={styles.menuDate}>Bugünün Menüsü</RN.Text>
 
                         <RN.ScrollView
                             style={{ flex: 1, marginTop: 10 }}
@@ -706,7 +701,8 @@ const styles = RN.StyleSheet.create({
     },
     timerSection: {
         marginBottom: 25,
-        height: 240, // Increase height to accommodate scaling
+        marginHorizontal: -24, // ScrollView'ın paddingHorizontal'ını iptal et
+        height: 240,
         justifyContent: 'center',
     },
     timerCircleContainer: {
